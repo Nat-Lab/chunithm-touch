@@ -109,7 +109,7 @@ HRESULT chuni_io_jvs_init(void) {
     chuni_ir_min_y = chuni_key_min_y - 6 * chuni_ir_height;
 
     log_info("ir: height: %ld (calculated min_y: %ld, max_y: %ld)\n", chuni_ir_height/100, chuni_ir_min_y/100, chuni_ir_max_y/100);
-    log_info("key: height: %ld, width: %ld, min_x: %ld (calculated min_y: %ld, max_x: %ld)\n", chuni_key_height/100, chuni_key_width/100, chuni_key_min_y/100, chuni_key_end/100, chuni_key_end/100);
+    log_info("key: height: %ld, width: %ld, min_x: %ld (calculated min_y: %ld, max_x: %ld)\n", chuni_key_height/100, chuni_key_width/100, chuni_key_start/100, chuni_key_min_y/100, chuni_key_end/100);
     log_info("raw_input: %s\n", raw_input ? "enabled" : "disabled");
 
     return S_OK;
