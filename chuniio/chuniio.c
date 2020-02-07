@@ -1,5 +1,3 @@
-#include <windows.h>
-#include <windowsx.h>
 #include <process.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -9,16 +7,18 @@
 #include "log.h"
 #define CHUNI_WINPROC CallWindowProc(chuni_wndproc, hwnd, msg, w_param, l_param)
 #define MAXFINGERS 10
+#define CONFIG L".\\chunitouch.ini"
 
-static const LONG chuni_ir_height = 5000;
-static const LONG chuni_key_height = 22000;
-static const LONG chuni_key_start = 31800;
-static const LONG chuni_key_width = 4000;
+static LONG chuni_ir_height = 5000;
+static LONG chuni_key_height = 22000;
+static LONG chuni_key_start = 31800;
+static LONG chuni_key_width = 4000;
 
-static const LONG chuni_key_end = chuni_key_start + 32 * chuni_key_width;
-static const LONG chuni_key_min_y = 108000 - chuni_key_height;
-static const LONG chuni_ir_max_y = chuni_key_min_y;
-static const LONG chuni_ir_min_y = chuni_key_min_y - 6 * chuni_ir_height;
+static LONG chuni_key_end = 0; //chuni_key_start + 32 * chuni_key_width;
+static LONG chuni_key_min_y = 0; //108000 - chuni_key_height;
+static LONG chuni_ir_max_y = 0; //chuni_key_min_y;
+static LONG chuni_ir_min_y = 0; //chuni_key_min_y - 6 * chuni_ir_height;
+static bool raw_input = false;
 
 static unsigned int __stdcall chuni_io_slider_thread_proc(void* ctx);
 
@@ -63,10 +63,9 @@ LRESULT CALLBACK chuni_winproc_hook(HWND hwnd, UINT msg, WPARAM w_param, LPARAM 
     if (GetTouchInputInfo((HTOUCHINPUT)l_param, fingers, inputs, sizeof(TOUCHINPUT))) {
         for (UINT i = 0; i < fingers; i++) {
             TOUCHINPUT p = inputs[i];
-            if (p.dwFlags & TOUCHEVENTF_PALM) continue;
             local_point.x = p.x;
             local_point.y = p.y;
-            ScreenToClient(hwnd, &local_point);
+            if (!raw_input) ScreenToClient(hwnd, &local_point);
             int slider_id = get_slider_from_pos(local_point.x, local_point.y);
             int ir_id = get_ir_from_pos(local_point.x, local_point.y);
             if (slider_id >= 0 && slider_id < 32) {
@@ -97,6 +96,21 @@ HRESULT chuni_io_jvs_init(void) {
     if (hwnd == NULL) log_error("can't get window handle for chuni.\n");
 
     log_info("allocated debug console.\n");
+
+    chuni_ir_height = GetPrivateProfileIntW(L"ir", L"height", 50, CONFIG) * 100;
+    chuni_key_height = GetPrivateProfileIntW(L"slider", L"height", 220, CONFIG) * 100;
+    chuni_key_start = GetPrivateProfileIntW(L"slider", L"offset", 318, CONFIG) * 100;
+    chuni_key_width = GetPrivateProfileIntW(L"slider", L"width", 40, CONFIG) * 100;
+    raw_input = GetPrivateProfileIntW(L"io", L"raw_input", 0, CONFIG);
+
+    chuni_key_end = chuni_key_start + 32 * chuni_key_width;
+    chuni_key_min_y = 108000 - chuni_key_height;
+    chuni_ir_max_y = chuni_key_min_y;
+    chuni_ir_min_y = chuni_key_min_y - 6 * chuni_ir_height;
+
+    log_info("ir: height: %ld (calculated min_y: %ld, max_y: %ld)\n", chuni_ir_height/100, chuni_ir_min_y/100, chuni_ir_max_y/100);
+    log_info("key: height: %ld, width: %ld, min_x: %ld (calculated min_y: %ld, max_x: %ld)\n", chuni_key_height/100, chuni_key_width/100, chuni_key_min_y/100, chuni_key_end/100, chuni_key_end/100);
+    log_info("raw_input: %s\n", raw_input ? "enabled" : "disabled");
 
     return S_OK;
 }

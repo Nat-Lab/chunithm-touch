@@ -1,3 +1,4 @@
+#include <windows.h>
 #include "create-touch-window.h"
 #include "hook/table.h"
 #include "hook/com-proxy.h"
@@ -66,7 +67,7 @@ HWND WINAPI m_CreateWindowExA(
     LPVOID    lpParam
 ) {
     HWND h = n_CreateWindowExA(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
-    RegisterTouchWindow(h, 0);
+    RegisterTouchWindow(h, TWF_FINETOUCH | TWF_WANTPALM);
     return h;
 }
 
