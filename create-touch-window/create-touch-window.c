@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "create-touch-window.h"
 #include "hook/table.h"
 #include "hook/com-proxy.h"
