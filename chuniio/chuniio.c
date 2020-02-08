@@ -47,7 +47,6 @@ static void chuni_io_ir(uint8_t *bitmap, uint8_t sensor_id, bool set) {
     else *bitmap &= ~(1 << sensor_id);
 }
 
-
 LRESULT CALLBACK chuni_winproc_hook(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param) {
     if (msg != WM_TOUCH) return CHUNI_WINPROC;
 
@@ -86,17 +85,22 @@ LRESULT CALLBACK chuni_winproc_hook(HWND hwnd, UINT msg, WPARAM w_param, LPARAM 
 
 HRESULT chuni_io_jvs_init(void) {
     // hook winproc
-    HWND hwnd = GetForegroundWindow();
-    chuni_wndproc = (WNDPROC)SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)&chuni_winproc_hook);
+    HWND hwnd = FindWindowA(NULL, "teaGfx DirectX Release");
 
     // alloc console for debug output
     AllocConsole();
+    SetConsoleTitle("chuni-touch");
     FILE* fp;
     freopen_s(&fp, "CONOUT$", "w", stdout);
-    if (hwnd == NULL) log_error("can't get window handle for chuni.\n");
-
     log_info("allocated debug console.\n");
 
+    if (hwnd == NULL) log_error("can't get window handle for chuni.\n");
+    else {
+        ULONG flags;
+        if (!IsTouchWindow(hwnd, &flags)) log_warn("IsTouchWindow() returned false, touch might not work.\n");
+        chuni_wndproc = (WNDPROC)SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)&chuni_winproc_hook);
+        log_info("hooked WNDPROC.\n");
+    }
     chuni_ir_height = GetPrivateProfileIntW(L"ir", L"height", 50, CONFIG) * 100;
     chuni_key_height = GetPrivateProfileIntW(L"slider", L"height", 220, CONFIG) * 100;
     chuni_key_start = GetPrivateProfileIntW(L"slider", L"offset", 318, CONFIG) * 100;
