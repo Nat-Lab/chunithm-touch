@@ -15,6 +15,10 @@ If you are using `segatools`:
 4. Open `start.bat` with any text editor. Find the line `inject -d -k chunihook.dll chuniApp.exe`.
 5. Append `-k ctw.dll` after `-k chunihook.dll`, so the line looks like this: `inject -d -k chunihook.dll -k ctw.dll chuniApp.exe`.
 
+### Usage
+
+Just tap on the screen. Use F1, F2, and F3 for test, service, and to insert coin.
+
 ### Configuration
 
 Settings will be read from `chunitouch.ini`. Here's a list of configurable options:
