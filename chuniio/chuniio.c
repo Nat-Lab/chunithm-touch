@@ -9,15 +9,13 @@
 #define MAXFINGERS 10
 #define CONFIG L".\\chunitouch.ini"
 
+static LONG chuni_ir_trigger_threshold = 7000;
 static LONG chuni_ir_height = 5000;
-static LONG chuni_key_height = 22000;
 static LONG chuni_key_start = 31800;
 static LONG chuni_key_width = 4000;
 
 static LONG chuni_key_end = 0; //chuni_key_start + 32 * chuni_key_width;
-static LONG chuni_key_min_y = 0; //108000 - chuni_key_height;
-static LONG chuni_ir_max_y = 0; //chuni_key_min_y;
-static LONG chuni_ir_min_y = 0; //chuni_key_min_y - 6 * chuni_ir_height;
+
 static bool raw_input = false;
 
 static unsigned int __stdcall chuni_io_slider_thread_proc(void* ctx);
@@ -30,13 +28,11 @@ static bool chuni_io_slider_stop_flag;
 static uint8_t chuni_sliders[32];
 static WNDPROC chuni_wndproc;
 
-static int get_ir_from_pos(LONG x, LONG y) {
-    if (y < chuni_ir_min_y || y > chuni_ir_max_y) return -1;
-    return 5 - ((y - chuni_ir_min_y) / chuni_ir_height);
-}
+static LONG start_locations[MAXFINGERS];
+static LONG finger_ids[MAXFINGERS];
 
 static int get_slider_from_pos(LONG x, LONG y) {
-    if (x < chuni_key_start || x > chuni_key_end || y < chuni_key_min_y) return -1;
+    if (x < chuni_key_start || x > chuni_key_end) return -1;
     return 31 - ((x - chuni_key_start) / chuni_key_width);
 }
 
@@ -45,6 +41,18 @@ static void chuni_io_ir(uint8_t *bitmap, uint8_t sensor_id, bool set) {
     else sensor_id--;
     if (set) *bitmap |= 1 << sensor_id;
     else *bitmap &= ~(1 << sensor_id);
+}
+
+static int get_finger_index(DWORD id) {
+    int avail_indx = -1;
+    for (int i = 0; i < MAXFINGERS; i++) {
+        if (finger_ids[i] == id) return i;
+        if (avail_indx == -1 && finger_ids[i] == -1) avail_indx = i;
+    }
+
+    if (avail_indx == -1) return -1;
+    finger_ids[avail_indx] = id;
+    return avail_indx;
 }
 
 LRESULT CALLBACK chuni_winproc_hook(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param) {
@@ -56,6 +64,7 @@ LRESULT CALLBACK chuni_winproc_hook(HWND hwnd, UINT msg, WPARAM w_param, LPARAM 
     TOUCHINPUT inputs[MAXFINGERS];
     static uint8_t clicked_sliders[32];
 
+
     memset(clicked_sliders, 0, 32);
     uint8_t chuni_ir_map_local = 0;
 
@@ -64,15 +73,26 @@ LRESULT CALLBACK chuni_winproc_hook(HWND hwnd, UINT msg, WPARAM w_param, LPARAM 
             TOUCHINPUT p = inputs[i];
             local_point.x = p.x;
             local_point.y = p.y;
-            if (!raw_input) ScreenToClient(hwnd, &local_point);
-            int slider_id = get_slider_from_pos(local_point.x, local_point.y);
-            int ir_id = get_ir_from_pos(local_point.x, local_point.y);
-            if (slider_id >= 0 && slider_id < 32 && clicked_sliders[slider_id] == 0) {
-                clicked_sliders[slider_id] = (p.dwFlags & TOUCHEVENTF_UP) ? 0 : 128;
+            int fid = get_finger_index(p.dwID);
+            if (fid < 0) {
+                log_error("too many fingers.\n");
+                continue;
             }
-                
-            if (ir_id >= 0 && ir_id < 6) {
-                chuni_io_ir(&chuni_ir_map_local, ir_id, !(p.dwFlags & TOUCHEVENTF_UP));
+            if (p.dwFlags & TOUCHEVENTF_UP) {
+                finger_ids[fid] = -1;
+                continue;
+            }
+            if (!raw_input) ScreenToClient(hwnd, &local_point);
+            if (p.dwFlags & TOUCHEVENTF_DOWN) start_locations[fid] = local_point.y;
+            LONG x_diff = start_locations[fid] - local_point.y;
+            if (x_diff > chuni_ir_trigger_threshold) {
+                int ir_id = (x_diff / chuni_ir_height) - 1;
+                if (ir_id > 5) ir_id = 5;
+                if (ir_id < 0) ir_id = 0;
+                chuni_io_ir(&chuni_ir_map_local, ir_id, true);
+            } else {
+                int slider_id = get_slider_from_pos(local_point.x, local_point.y);
+                if (slider_id >= 0 && slider_id < 32) clicked_sliders[slider_id] = 128;
             }
         }
     }
@@ -103,19 +123,18 @@ HRESULT chuni_io_jvs_init(void) {
         log_info("hooked WNDPROC.\n");
     }
     chuni_ir_height = GetPrivateProfileIntW(L"ir", L"height", 50, CONFIG) * 100;
-    chuni_key_height = GetPrivateProfileIntW(L"slider", L"height", 220, CONFIG) * 100;
+    chuni_ir_trigger_threshold = GetPrivateProfileIntW(L"ir", L"trigger", 70, CONFIG) * 100;
     chuni_key_start = GetPrivateProfileIntW(L"slider", L"offset", 318, CONFIG) * 100;
     chuni_key_width = GetPrivateProfileIntW(L"slider", L"width", 40, CONFIG) * 100;
     raw_input = GetPrivateProfileIntW(L"io", L"raw_input", 0, CONFIG);
 
     chuni_key_end = chuni_key_start + 32 * chuni_key_width;
-    chuni_key_min_y = 108000 - chuni_key_height;
-    chuni_ir_max_y = chuni_key_min_y;
-    chuni_ir_min_y = chuni_key_min_y - 6 * chuni_ir_height;
 
-    log_info("ir: height: %ld (calculated min_y: %ld, max_y: %ld)\n", chuni_ir_height/100, chuni_ir_min_y/100, chuni_ir_max_y/100);
-    log_info("key: height: %ld, width: %ld, min_x: %ld (calculated min_y: %ld, max_x: %ld)\n", chuni_key_height/100, chuni_key_width/100, chuni_key_start/100, chuni_key_min_y/100, chuni_key_end/100);
+    for(int i = 0; i < MAXFINGERS; i++) finger_ids[i] = -1;
+
     log_info("raw_input: %s\n", raw_input ? "enabled" : "disabled");
+    log_info("ir: trigger_threshold: %ld, height: %ld\n", chuni_ir_trigger_threshold/100, chuni_ir_height/100);
+    log_info("key: start: %ld, width: %ld, end: %ld\n", chuni_key_start/100, chuni_key_width/100, chuni_key_end/100);
 
     return S_OK;
 }
