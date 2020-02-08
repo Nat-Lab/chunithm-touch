@@ -67,12 +67,12 @@ LRESULT CALLBACK chuni_winproc_hook(HWND hwnd, UINT msg, WPARAM w_param, LPARAM 
             if (!raw_input) ScreenToClient(hwnd, &local_point);
             int slider_id = get_slider_from_pos(local_point.x, local_point.y);
             int ir_id = get_ir_from_pos(local_point.x, local_point.y);
-            if (slider_id >= 0 && slider_id < 32) {
-                clicked_sliders[slider_id] = 128;
+            if (slider_id >= 0 && slider_id < 32 && clicked_sliders[slider_id] == 0) {
+                clicked_sliders[slider_id] = (p.dwFlags & TOUCHEVENTF_UP) ? 0 : 128;
             }
                 
             if (ir_id >= 0 && ir_id < 6) {
-                chuni_io_ir(&chuni_ir_map_local, ir_id, true);
+                chuni_io_ir(&chuni_ir_map_local, ir_id, !(p.dwFlags & TOUCHEVENTF_UP));
             }
                 
         }
