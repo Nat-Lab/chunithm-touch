@@ -1,7 +1,25 @@
-#include <windows.h>
 #include "create-touch-window.h"
 #include "hook/table.h"
 #include "hook/com-proxy.h"
+#include <windows.h>
+#include <winuser.h>
+
+
+void make_touchable (HWND h) {
+    const BOOL enabled = FALSE;
+    SetWindowFeedbackSetting(h, FEEDBACK_TOUCH_CONTACTVISUALIZATION, 0, sizeof(BOOL), &enabled);
+    SetWindowFeedbackSetting(h, FEEDBACK_PEN_BARRELVISUALIZATION, 0, sizeof(BOOL), &enabled);
+    SetWindowFeedbackSetting(h, FEEDBACK_PEN_TAP, 0, sizeof(BOOL), &enabled);
+    SetWindowFeedbackSetting(h, FEEDBACK_PEN_DOUBLETAP, 0, sizeof(BOOL), &enabled);
+    SetWindowFeedbackSetting(h, FEEDBACK_PEN_PRESSANDHOLD, 0, sizeof(BOOL), &enabled);
+    SetWindowFeedbackSetting(h, FEEDBACK_PEN_RIGHTTAP, 0, sizeof(BOOL), &enabled);
+    SetWindowFeedbackSetting(h, FEEDBACK_TOUCH_TAP, 0, sizeof(BOOL), &enabled);
+    SetWindowFeedbackSetting(h, FEEDBACK_TOUCH_DOUBLETAP, 0, sizeof(BOOL), &enabled);
+    SetWindowFeedbackSetting(h, FEEDBACK_TOUCH_PRESSANDHOLD, 0, sizeof(BOOL), &enabled);
+    SetWindowFeedbackSetting(h, FEEDBACK_TOUCH_RIGHTTAP, 0, sizeof(BOOL), &enabled);
+    SetWindowFeedbackSetting(h, FEEDBACK_GESTURE_PRESSANDTAP, 0, sizeof(BOOL), &enabled);
+    RegisterTouchWindow(h, TWF_FINETOUCH | TWF_WANTPALM);
+}
 
 static HWND(WINAPI* n_CreateWindowExW)(
     DWORD     dwExStyle,
@@ -48,7 +66,7 @@ HWND WINAPI m_CreateWindowExW(
     LPVOID    lpParam
 ) {
     HWND h = n_CreateWindowExW(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
-    RegisterTouchWindow(h, 0);
+    make_touchable(h);
     return h;
 }
 
@@ -67,7 +85,7 @@ HWND WINAPI m_CreateWindowExA(
     LPVOID    lpParam
 ) {
     HWND h = n_CreateWindowExA(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
-    RegisterTouchWindow(h, TWF_FINETOUCH | TWF_WANTPALM);
+    make_touchable(h);
     return h;
 }
 

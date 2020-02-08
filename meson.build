@@ -1,10 +1,10 @@
-project('chunithm-touch', 'c', version: '0.1.1', default_options: ['warning_level=3'])
+project('chunithm-touch', 'c', version: '0.1.2', default_options: ['warning_level=2'])
 
 add_project_arguments(
     '-DCOBJMACROS',
     '-DDIRECTINPUT_VERSION=0x0800',
     '-DWIN32_LEAN_AND_MEAN',
-    '-D_WIN32_WINNT=_WIN32_WINNT_WIN7',
+    '-D_WIN32_WINNT=_WIN32_WINNT_WIN8',
     '-DMINGW_HAS_SECURE_API=1',
     language: 'c',
 )

@@ -56,7 +56,7 @@ LRESULT CALLBACK chuni_winproc_hook(HWND hwnd, UINT msg, WPARAM w_param, LPARAM 
     TOUCHINPUT inputs[MAXFINGERS];
     static uint8_t clicked_sliders[32];
 
-    for (UINT i = 0; i < 32; i++) clicked_sliders[i] = 0;
+    memset(clicked_sliders, 0, 32);
     uint8_t chuni_ir_map_local = 0;
 
     if (GetTouchInputInfo((HTOUCHINPUT)l_param, fingers, inputs, sizeof(TOUCHINPUT))) {
@@ -74,9 +74,10 @@ LRESULT CALLBACK chuni_winproc_hook(HWND hwnd, UINT msg, WPARAM w_param, LPARAM 
             if (ir_id >= 0 && ir_id < 6) {
                 chuni_io_ir(&chuni_ir_map_local, ir_id, !(p.dwFlags & TOUCHEVENTF_UP));
             }
-                
         }
     }
+
+    CloseTouchInputHandle((HTOUCHINPUT)l_param);
 
     memcpy(chuni_sliders, clicked_sliders, 32);
     chuni_ir_sensor_map = chuni_ir_map_local;
