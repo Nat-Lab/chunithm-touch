@@ -3,5 +3,5 @@
 
 BOOL WINAPI DllMain(HMODULE mod, DWORD cause, void *ctx) {
     do_hook();
-    return true;
+    return TRUE;
 }
