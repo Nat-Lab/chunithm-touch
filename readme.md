@@ -17,7 +17,7 @@ If you are using `segatools`:
 
 ### Usage
 
-Just tap on the screen. Use F1, F2, and F3 for test, service, and to insert coin.
+Just tap and slide on the screen. Slide up to simulate the IR sensor. Use F1, F2, and F3 for test, service, and to insert coin.
 
 ### Configuration
 
@@ -27,10 +27,10 @@ Settings will be read from `chunitouch.ini`. Here's a list of configurable optio
 [ir]
 ; height of each IR sensor
 height = 50
+; IR trigger threshold (number of pixels required to move up for a move to be registered as air)
+trigger = 70
 
 [slider]
-; slider's height
-height = 220
 ; slider's width
 width = 40
 ; slider's x-offset (pixels from the left of the screen)
@@ -40,10 +40,6 @@ offset = 318
 ; use raw input
 raw_input = 0
 ```
-
-The image below illustrates what each option mean:
-
-![screenshot](https://raw.githubusercontent.com/Nat-Lab/chunithm-touch/master/doc/config.png)
 
 ### Building
 
