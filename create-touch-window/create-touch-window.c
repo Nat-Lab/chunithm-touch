@@ -4,20 +4,25 @@
 #include <windows.h>
 #include <winuser.h>
 
+#define CONFIG L".\\chunitouch.ini"
+
+static BOOL touch_feedback = FALSE;
 
 void make_touchable (HWND h) {
     const BOOL enabled = FALSE;
-    SetWindowFeedbackSetting(h, FEEDBACK_TOUCH_CONTACTVISUALIZATION, 0, sizeof(BOOL), &enabled);
-    SetWindowFeedbackSetting(h, FEEDBACK_PEN_BARRELVISUALIZATION, 0, sizeof(BOOL), &enabled);
-    SetWindowFeedbackSetting(h, FEEDBACK_PEN_TAP, 0, sizeof(BOOL), &enabled);
-    SetWindowFeedbackSetting(h, FEEDBACK_PEN_DOUBLETAP, 0, sizeof(BOOL), &enabled);
-    SetWindowFeedbackSetting(h, FEEDBACK_PEN_PRESSANDHOLD, 0, sizeof(BOOL), &enabled);
-    SetWindowFeedbackSetting(h, FEEDBACK_PEN_RIGHTTAP, 0, sizeof(BOOL), &enabled);
-    SetWindowFeedbackSetting(h, FEEDBACK_TOUCH_TAP, 0, sizeof(BOOL), &enabled);
-    SetWindowFeedbackSetting(h, FEEDBACK_TOUCH_DOUBLETAP, 0, sizeof(BOOL), &enabled);
-    SetWindowFeedbackSetting(h, FEEDBACK_TOUCH_PRESSANDHOLD, 0, sizeof(BOOL), &enabled);
-    SetWindowFeedbackSetting(h, FEEDBACK_TOUCH_RIGHTTAP, 0, sizeof(BOOL), &enabled);
-    SetWindowFeedbackSetting(h, FEEDBACK_GESTURE_PRESSANDTAP, 0, sizeof(BOOL), &enabled);
+    if(!touch_feedback) {
+        SetWindowFeedbackSetting(h, FEEDBACK_TOUCH_CONTACTVISUALIZATION, 0, sizeof(BOOL), &enabled);
+        SetWindowFeedbackSetting(h, FEEDBACK_PEN_BARRELVISUALIZATION, 0, sizeof(BOOL), &enabled);
+        SetWindowFeedbackSetting(h, FEEDBACK_PEN_TAP, 0, sizeof(BOOL), &enabled);
+        SetWindowFeedbackSetting(h, FEEDBACK_PEN_DOUBLETAP, 0, sizeof(BOOL), &enabled);
+        SetWindowFeedbackSetting(h, FEEDBACK_PEN_PRESSANDHOLD, 0, sizeof(BOOL), &enabled);
+        SetWindowFeedbackSetting(h, FEEDBACK_PEN_RIGHTTAP, 0, sizeof(BOOL), &enabled);
+        SetWindowFeedbackSetting(h, FEEDBACK_TOUCH_TAP, 0, sizeof(BOOL), &enabled);
+        SetWindowFeedbackSetting(h, FEEDBACK_TOUCH_DOUBLETAP, 0, sizeof(BOOL), &enabled);
+        SetWindowFeedbackSetting(h, FEEDBACK_TOUCH_PRESSANDHOLD, 0, sizeof(BOOL), &enabled);
+        SetWindowFeedbackSetting(h, FEEDBACK_TOUCH_RIGHTTAP, 0, sizeof(BOOL), &enabled);
+        SetWindowFeedbackSetting(h, FEEDBACK_GESTURE_PRESSANDTAP, 0, sizeof(BOOL), &enabled);
+    }
     RegisterTouchWindow(h, TWF_FINETOUCH | TWF_WANTPALM);
 }
 
@@ -95,5 +100,6 @@ static const struct hook_symbol cw_hooks[] = {
 };
 
 void do_hook() {
+    touch_feedback = GetPrivateProfileIntW(L"io", L"touch_feedback", 0, CONFIG);
     hook_table_apply(NULL, "user32.dll", cw_hooks, _countof(cw_hooks));
 }

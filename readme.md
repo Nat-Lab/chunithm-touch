@@ -9,15 +9,15 @@ chuni-touch
 
 If you are using `segatools`:
 
-1. Download `chuni-touch` from the [release](https://github.com/Nat-Lab/chunithm-touch/releases) page.
-2. Unzip `chuni-touch`, you will find `ctw.dll` and `chuniio.dll`.
+1. Download `chuni-touch.zip` from the [release](https://github.com/Nat-Lab/chunithm-touch/releases) page.
+2. Unzip `chuni-touch.zip`, you will find `ctw.dll` and `chuniio.dll`.
 3. Copy them to the `bin` folder of your game. Replace `chuniio.dll` if it already exists. 
 4. Open `start.bat` with any text editor. Find the line `inject -d -k chunihook.dll chuniApp.exe`.
 5. Append `-k ctw.dll` after `-k chunihook.dll`, so the line looks like this: `inject -d -k chunihook.dll -k ctw.dll chuniApp.exe`.
 
 ### Usage
 
-Just tap and slide on the screen. Slide up to simulate the IR sensor. Use F1, F2, and F3 for test, service, and to insert coin.
+Just tap/slide on the screed and slide up to simulate the IR sensor. A video demo of how touch controls work is available [here](https://youtu.be/Uknwet_-wWw). Use F1, F2, and F3 for test, service, and to insert coin.
 
 ### Configuration
 
@@ -39,6 +39,8 @@ offset = 318
 [io]
 ; use raw input
 raw_input = 0
+; show Windows touch feedback
+touch_feedback = 0
 ```
 
 ### Building
