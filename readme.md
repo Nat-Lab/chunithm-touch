@@ -25,10 +25,20 @@ Settings will be read from `chunitouch.ini`. Here's a list of configurable optio
 
 ```
 [ir]
+; enabled touch based control
+touch_enabled = 1
 ; height of each IR sensor
 height = 50
 ; IR trigger threshold (number of pixels required to move up for a move to be registered as air)
 trigger = 70
+
+; enabled leap motion based control
+leap_enabled = 0
+; TODO
+leap_orientation = 1
+leap_trigger = 500
+leap_step = 300
+
 
 [slider]
 ; slider's width

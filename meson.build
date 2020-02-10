@@ -31,3 +31,4 @@ capnhook = subproject('capnhook')
 
 subdir('chuniio')
 subdir('create-touch-window')
+subdir('leapio')
