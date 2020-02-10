@@ -118,6 +118,19 @@ fail:
     return FALSE;
 }
 
+BOOL leap_disconnect() {
+    if (!_running || _connection == NULL) return FALSE;
+
+    _running = FALSE;
+    WaitForSingleObject(_polling_thread, INFINITE);
+    CloseHandle(_polling_thread);
+    LeapCloseConnection(_connection);
+    LeapDestroyConnection(_connection);
+    _connection = NULL;
+
+    return TRUE;
+}
+
 void leap_set_tracking_handler(leap_tracking_callback_t cb) {
     _track_cb = cb;
 }
