@@ -206,6 +206,6 @@ void leap_unset_tracking_handler() {
     _track_cb = NULL;
 }
 
-void join() {
+void leap_join_thread() {
     WaitForSingleObject(_polling_thread, INFINITE);
 }
