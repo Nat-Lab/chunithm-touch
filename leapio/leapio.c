@@ -84,7 +84,7 @@ static void leap_event_loop(void *_) {
 
                 device_info.size = sizeof(LEAP_DEVICE_INFO);
                 device_info.serial_length = 1;
-                device_info.serial_length = malloc(1);
+                device_info.serial = malloc(1);
 
                 rslt = LeapGetDeviceInfo(device, &device_info);
 
