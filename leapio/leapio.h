@@ -1,7 +1,7 @@
 #pragma once
 #include <windows.h>
 #include <stdlib.h>
-#include "leapc.h"
+#include "LeapC.h"
 
 typedef void (*leap_connect_callback_t)(BOOL connected);
 typedef void (*leap_tracking_callback_t)(const LEAP_TRACKING_EVENT *ev);
@@ -44,3 +44,9 @@ void leap_set_tracking_handler(leap_tracking_callback_t cb);
  * 
  */
 void leap_unset_tracking_handler();
+
+/**
+ * @brief join the event loop thread.
+ * 
+ */
+void join();

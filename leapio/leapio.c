@@ -6,6 +6,7 @@ static LEAP_CONNECTION _connection = NULL;
 static leap_connect_callback_t _conn_cb = NULL;
 static leap_tracking_callback_t _track_cb = NULL;
 static BOOL _running = FALSE;
+static BOOL _connected = FALSE;
 static HANDLE _polling_thread = NULL;
 
 static const char* leap_result_string(eLeapRS r) {
@@ -59,9 +60,11 @@ static void leap_event_loop(void *_) {
 
         switch (msg.type){
             case eLeapEventType_Connection:
+                _connected = true;
                 if (_conn_cb != NULL) _conn_cb(TRUE);
                 break;
             case eLeapEventType_ConnectionLost:
+                _connected = false;
                 if (_conn_cb != NULL) _conn_cb(FALSE);
                 break;
             case eLeapEventType_Device: {
@@ -138,6 +141,10 @@ device_handle_end:
     log_debug("leap event loop stopped.\n");
 }
 
+BOOL leap_is_connected() {
+    return _connected;
+}
+
 BOOL leap_connect(leap_connect_callback_t cb) {
     if (_running || _connection != NULL) return FALSE;
     _running = TRUE;
@@ -185,4 +192,8 @@ void leap_set_tracking_handler(leap_tracking_callback_t cb) {
 
 void leap_unset_tracking_handler() {
     _track_cb = NULL;
+}
+
+void join() {
+    WaitForSingleObject(_polling_thread, INFINITE);
 }
