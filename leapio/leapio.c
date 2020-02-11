@@ -4,9 +4,11 @@
 
 static LEAP_CONNECTION _connection = NULL;
 static leap_connect_callback_t _conn_cb = NULL;
+static leap_connect_callback_t _devconn_cb = NULL;
 static leap_tracking_callback_t _track_cb = NULL;
 static BOOL _running = FALSE;
 static BOOL _connected = FALSE;
+static BOOL _device_connected = FALSE;
 static HANDLE _polling_thread = NULL;
 
 static const char* leap_result_string(eLeapRS r) {
@@ -37,10 +39,10 @@ static const char* leap_result_string(eLeapRS r) {
 
 static void leap_log(const LEAP_LOG_EVENT* e) {
     switch(e->severity) {
-        case eLeapLogSeverity_Unknown: log_notice("leap: %s\n", e->message); break;
-        case eLeapLogSeverity_Critical: log_fatal("leap: %s\n", e->message); break;
-        case eLeapLogSeverity_Warning: log_warn("leap: %s\n", e->message); break;
-        case eLeapLogSeverity_Information: log_info("leap: %s\n", e->message); break;
+        case eLeapLogSeverity_Unknown: log_notice("%s.\n", e->message); break;
+        case eLeapLogSeverity_Critical: log_fatal("%s.\n", e->message); break;
+        case eLeapLogSeverity_Warning: log_warn("%s.\n", e->message); break;
+        case eLeapLogSeverity_Information: log_info("%s.\n", e->message); break;
     }
 }
 
@@ -60,14 +62,16 @@ static void leap_event_loop(void *_) {
 
         switch (msg.type){
             case eLeapEventType_Connection:
-                _connected = true;
+                _connected = TRUE;
                 if (_conn_cb != NULL) _conn_cb(TRUE);
                 break;
             case eLeapEventType_ConnectionLost:
-                _connected = false;
+                _connected = FALSE;
                 if (_conn_cb != NULL) _conn_cb(FALSE);
                 break;
             case eLeapEventType_Device: {
+                _device_connected = TRUE;
+                if (_devconn_cb != NULL) _devconn_cb(TRUE);
                 LEAP_DEVICE_INFO device_info;
                 LEAP_DEVICE device;
 
@@ -96,13 +100,17 @@ static void leap_event_loop(void *_) {
                 }
 device_handle_end:
                 free(device_info.serial);
-                LeapCloseDevice(device);
+                LeapCloseDevice(device); // this closes the handler for device, not the device itself.
                 break;
             }
             case eLeapEventType_DeviceLost:
+                _device_connected = FALSE;
+                if (_devconn_cb != NULL) _devconn_cb(FALSE);
                 log_warn("leap device lost.\n");
                 break;
             case eLeapEventType_DeviceFailure:
+                _device_connected = FALSE;
+                if (_devconn_cb != NULL) _devconn_cb(FALSE);
                 log_warn("leap device failure.\n");
                 break;
             case eLeapEventType_Tracking:
@@ -143,6 +151,10 @@ device_handle_end:
 
 BOOL leap_is_connected() {
     return _connected;
+}
+
+BOOL leap_is_device_connected() {
+    return _device_connected;
 }
 
 BOOL leap_connect(leap_connect_callback_t cb) {
