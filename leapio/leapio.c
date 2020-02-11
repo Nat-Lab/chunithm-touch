@@ -34,6 +34,15 @@ static const char* leap_result_string(eLeapRS r) {
     }
 }
 
+static void leap_log(const LEAP_LOG_EVENT* e) {
+    switch(e->severity) {
+        case eLeapLogSeverity_Unknown: log_notice("leap: %s\n", e->message); break;
+        case eLeapLogSeverity_Critical: log_fatal("leap: %s\n", e->message); break;
+        case eLeapLogSeverity_Warning: log_warn("leap: %s\n", e->message); break;
+        case eLeapLogSeverity_Information: log_info("leap: %s\n", e->message); break;
+    }
+}
+
 static void leap_event_loop(void *_) {
     log_debug("spinned up leap event loop.\n");
     eLeapRS rslt;
@@ -50,22 +59,58 @@ static void leap_event_loop(void *_) {
 
         switch (msg.type){
             case eLeapEventType_Connection:
+                if (_conn_cb != NULL) _conn_cb(TRUE);
                 break;
             case eLeapEventType_ConnectionLost:
+                if (_conn_cb != NULL) _conn_cb(FALSE);
                 break;
-            case eLeapEventType_Device:
+            case eLeapEventType_Device: {
+                LEAP_DEVICE_INFO device_info;
+                LEAP_DEVICE device;
+
+                rslt = LeapOpenDevice(msg.device_event->device, &device);
+
+                if (rslt != eLeapRS_Success) {
+                    log_error("LeapOpenDevice: %s\n", leap_result_string(rslt));
+                    goto device_handle_end;
+                }
+
+                device_info.size = sizeof(LEAP_DEVICE_INFO);
+                device_info.serial_length = 1;
+                device_info.serial_length = malloc(1);
+
+                rslt = LeapGetDeviceInfo(device, &device_info);
+
+                if (rslt == eLeapRS_Success) log_info("leap device %s connected.\n", device_info.serial);
+                else if (rslt == eLeapRS_InsufficientBuffer) {
+                    device_info.serial = realloc(device_info.serial, device_info.serial_length);
+                    rslt = LeapGetDeviceInfo(device, &device_info);
+
+                    if (rslt != eLeapRS_Success) {
+                        log_error("LeapGetDeviceInfo: %s\n", leap_result_string(rslt));
+                        goto device_handle_end;
+                    }
+                }
+device_handle_end:
+                free(device_info.serial);
+                LeapCloseDevice(device);
                 break;
+            }
             case eLeapEventType_DeviceLost:
+                log_warn("leap device lost.\n");
                 break;
             case eLeapEventType_DeviceFailure:
+                log_warn("leap device failure.\n");
                 break;
             case eLeapEventType_Tracking:
+                if (_track_cb != NULL) _track_cb(msg.tracking_event);
                 break;
             case eLeapEventType_ImageComplete:
                 break;
             case eLeapEventType_ImageRequestError:
                 break;
             case eLeapEventType_LogEvent:
+                leap_log(msg.log_event);
                 break;
             case eLeapEventType_Policy:
                 break;
@@ -78,6 +123,9 @@ static void leap_event_loop(void *_) {
             case eLeapEventType_PointMappingChange:
                 break;
             case eLeapEventType_LogEvents:
+                for (uint32_t i = 0; i < msg.log_events->nEvents; i++) {
+                    leap_log(&(msg.log_events->events[i]));
+                }
                 break;
             case eLeapEventType_HeadPose:
                 break;
