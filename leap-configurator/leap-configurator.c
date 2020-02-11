@@ -27,7 +27,7 @@ int main () {
     }
     log_info("leap device connected.\n");
 
-    join(); 
+    leap_join_thread(); 
 
     // TODO
 

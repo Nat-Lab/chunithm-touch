@@ -64,4 +64,4 @@ void leap_set_device_ready_handler(leap_connect_callback_t cb);
  * @brief join the event loop thread.
  * 
  */
-void join();
+void leap_join_thread();
