@@ -7,6 +7,6 @@ leap_configurator = executable(
     link_with: [leapio_lib],
     dependencies: leap_lib,
     sources : [
-        'leap-configuratior.c'
+        'leap-configurator.c'
     ]
 )
