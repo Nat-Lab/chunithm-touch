@@ -43,7 +43,7 @@ raw_input = 0
 touch_feedback = 0
 
 [misc]
-; keep slider hold while on air-action
+; keep slider(s) holded while on air-action
 ir_keep_slider = 0
 ```
 
