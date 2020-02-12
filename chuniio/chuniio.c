@@ -105,7 +105,7 @@ LRESULT CALLBACK chuni_winproc_hook(HWND hwnd, UINT msg, WPARAM w_param, LPARAM 
                 int8_t ir_id = (x_diff / chuni_ir_height) - 1;
                 chuni_io_ir(&chuni_ir_map_local, ir_id, true);
             }
-            if (x_diff <= chuni_ir_trigger_threshold || ir_keep_slider) {
+            if (ir_control_source == CSRC_LEAP || x_diff <= chuni_ir_trigger_threshold || ir_keep_slider) {
                 int slider_id = get_slider_from_pos(local_point.x, local_point.y);
                 if (slider_id >= 0 && slider_id < 32) clicked_sliders[slider_id] = 128;
             }
@@ -186,12 +186,16 @@ HRESULT chuni_io_jvs_init(void) {
 
     for(int i = 0; i < MAXFINGERS; i++) finger_ids[i] = -1;
 
-    leap_connect(NULL);
-    leap_set_tracking_handler(leap_handler);
-    while (!leap_is_connected()) {
-        Sleep(10);
+    if (ir_control_source == CSRC_LEAP) {
+        log_info("connecting to leap service...\n");
+        leap_connect(NULL);
+        leap_set_tracking_handler(leap_handler);
+        while (!leap_is_connected()) {
+            Sleep(10);
+        }
+        log_info("connected to leap service.\n");
     }
-    log_info("connected to leap service.\n");
+
 
     log_info("raw_input: %s\n", raw_input ? "enabled" : "disabled");
     log_info("ir_keep_slider: %s\n", ir_keep_slider ? "enabled" : "disabled");
