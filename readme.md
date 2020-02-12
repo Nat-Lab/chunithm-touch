@@ -17,7 +17,7 @@ If you are using `segatools`:
 
 ### Usage
 
-Just tap/slide on the screed and slide up to simulate the IR sensor. A video demo of how touch controls work is available [here](https://youtu.be/Uknwet_-wWw). Use F1, F2, and F3 for test, service, and to insert coin.
+Just tap/slide on the screen and slide up to simulate the IR sensor. A video demo of how touch controls work is available [here](https://youtu.be/Uknwet_-wWw). Use F1, F2, and F3 for test, service, and to insert coin.
 
 ### Configuration
 
@@ -41,6 +41,10 @@ offset = 318
 raw_input = 0
 ; show Windows touch feedback
 touch_feedback = 0
+
+[misc]
+; keep slider hold while on air-action
+ir_keep_slider = 0
 ```
 
 ### Building
