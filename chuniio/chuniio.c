@@ -30,6 +30,7 @@ static LONG chuni_key_end = 0; //chuni_key_start + 32 * chuni_key_width;
 
 static bool raw_input = false;
 static uint8_t ir_control_source = CSRC_TOUCH;
+static bool ir_keep_slider = false;
 
 static unsigned int __stdcall chuni_io_slider_thread_proc(void* ctx);
 
@@ -103,7 +104,8 @@ LRESULT CALLBACK chuni_winproc_hook(HWND hwnd, UINT msg, WPARAM w_param, LPARAM 
             if (ir_control_source == CSRC_TOUCH && x_diff > chuni_ir_trigger_threshold) {
                 int8_t ir_id = (x_diff / chuni_ir_height) - 1;
                 chuni_io_ir(&chuni_ir_map_local, ir_id, true);
-            } else {
+            }
+            if (x_diff <= chuni_ir_trigger_threshold || ir_keep_slider) {
                 int slider_id = get_slider_from_pos(local_point.x, local_point.y);
                 if (slider_id >= 0 && slider_id < 32) clicked_sliders[slider_id] = 128;
             }
@@ -171,6 +173,7 @@ HRESULT chuni_io_jvs_init(void) {
     chuni_key_start = GetPrivateProfileIntW(L"slider", L"offset", 318, CONFIG) * 100;
     chuni_key_width = GetPrivateProfileIntW(L"slider", L"width", 40, CONFIG) * 100;
     raw_input = GetPrivateProfileIntW(L"io", L"raw_input", 0, CONFIG);
+    ir_keep_slider = GetPrivateProfileIntW(L"misc", L"ir_keep_slider", 0, CONFIG);
 
     GetPrivateProfileStringW(L"ir", L"control_source", L"touch", str_control_src, 16, CONFIG);
     GetPrivateProfileStringW(L"ir", L"leap_orientation", L"y", str_leap_orientation, 16, CONFIG);
@@ -191,6 +194,7 @@ HRESULT chuni_io_jvs_init(void) {
     log_info("connected to leap service.\n");
 
     log_info("raw_input: %s\n", raw_input ? "enabled" : "disabled");
+    log_info("ir_keep_slider: %s\n", ir_keep_slider ? "enabled" : "disabled");
     log_info("key: start: %ld, width: %ld, end: %ld\n", chuni_key_start/100, chuni_key_width/100, chuni_key_end/100);
 
     if (ir_control_source == CSRC_TOUCH) {
