@@ -46,7 +46,7 @@ static void chuni_io_ir(uint8_t *bitmap, uint8_t sensor_id, bool set) {
 static int get_finger_index(DWORD id) {
     int avail_indx = -1;
     for (int i = 0; i < MAXFINGERS; i++) {
-        if (finger_ids[i] == id) return i;
+        if (finger_ids[i] > 0 && (DWORD) finger_ids[i] == id) return i;
         if (avail_indx == -1 && finger_ids[i] == -1) avail_indx = i;
     }
 
@@ -119,7 +119,12 @@ HRESULT chuni_io_jvs_init(void) {
     else {
         ULONG flags;
         if (!IsTouchWindow(hwnd, &flags)) log_warn("IsTouchWindow() returned false, touch might not work.\n");
+#ifdef _WIN64
+        chuni_wndproc = (WNDPROC)SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)&chuni_winproc_hook);
+#else
         chuni_wndproc = (WNDPROC)SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)&chuni_winproc_hook);
+#endif
+    
         log_info("hooked WNDPROC.\n");
     }
     chuni_ir_height = GetPrivateProfileIntW(L"ir", L"height", 50, CONFIG) * 100;
