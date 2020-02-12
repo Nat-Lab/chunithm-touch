@@ -38,7 +38,7 @@ leap_lib = meson.get_compiler('c').find_library('LeapC', dirs: leap_lib_path)
 
 capnhook = subproject('capnhook')
 
-subdir('chuniio')
-subdir('create-touch-window')
 subdir('leapio')
 subdir('leap-configurator')
+subdir('chuniio')
+subdir('create-touch-window')

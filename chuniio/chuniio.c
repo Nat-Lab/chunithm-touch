@@ -4,19 +4,32 @@
 #include <fcntl.h>
 #include <io.h>
 #include "chuniio.h"
+#include "leapio/leapio.h"
 #include "log.h"
 #define CHUNI_WINPROC CallWindowProc(chuni_wndproc, hwnd, msg, w_param, l_param)
 #define MAXFINGERS 10
 #define CONFIG L".\\chunitouch.ini"
 
+#define CSRC_TOUCH 0
+#define CSRC_LEAP 1
+
+#define LEAP_X 0
+#define LEAP_Y 1
+#define LEAP_Z 2
+
 static LONG chuni_ir_trigger_threshold = 7000;
 static LONG chuni_ir_height = 5000;
+static UINT chuni_ir_leap_trigger = 500;
+static UINT chuni_ir_leap_step = 300;
+static uint8_t leap_orientation = LEAP_Y;
+
 static LONG chuni_key_start = 31800;
 static LONG chuni_key_width = 4000;
 
 static LONG chuni_key_end = 0; //chuni_key_start + 32 * chuni_key_width;
 
 static bool raw_input = false;
+static uint8_t ir_control_source = CSRC_TOUCH;
 
 static unsigned int __stdcall chuni_io_slider_thread_proc(void* ctx);
 
@@ -36,7 +49,9 @@ static int get_slider_from_pos(LONG x, LONG y) {
     return 31 - ((x - chuni_key_start) / chuni_key_width);
 }
 
-static void chuni_io_ir(uint8_t *bitmap, uint8_t sensor_id, bool set) {
+static void chuni_io_ir(uint8_t *bitmap, int8_t sensor_id, bool set) {
+    if (sensor_id > 5) sensor_id = 5;
+    if (sensor_id < 0) sensor_id = 0;
     if (sensor_id % 2 == 0) sensor_id++;
     else sensor_id--;
     if (set) *bitmap |= 1 << sensor_id;
@@ -85,10 +100,8 @@ LRESULT CALLBACK chuni_winproc_hook(HWND hwnd, UINT msg, WPARAM w_param, LPARAM 
             if (!raw_input) ScreenToClient(hwnd, &local_point);
             if (p.dwFlags & TOUCHEVENTF_DOWN) start_locations[fid] = local_point.y;
             LONG x_diff = start_locations[fid] - local_point.y;
-            if (x_diff > chuni_ir_trigger_threshold) {
-                int ir_id = (x_diff / chuni_ir_height) - 1;
-                if (ir_id > 5) ir_id = 5;
-                if (ir_id < 0) ir_id = 0;
+            if (ir_control_source == CSRC_TOUCH && x_diff > chuni_ir_trigger_threshold) {
+                int8_t ir_id = (x_diff / chuni_ir_height) - 1;
                 chuni_io_ir(&chuni_ir_map_local, ir_id, true);
             } else {
                 int slider_id = get_slider_from_pos(local_point.x, local_point.y);
@@ -102,6 +115,27 @@ LRESULT CALLBACK chuni_winproc_hook(HWND hwnd, UINT msg, WPARAM w_param, LPARAM 
     memcpy(chuni_sliders, clicked_sliders, 32);
     chuni_ir_sensor_map = chuni_ir_map_local;
     return CHUNI_WINPROC;
+}
+
+void leap_handler (const LEAP_TRACKING_EVENT *ev) {
+    uint8_t chuni_ir_map_local = 0;
+
+    for(uint32_t h = 0; h < ev->nHands; h++) {
+        const LEAP_HAND* hand = &(ev->pHands[h]);
+        float pos = 0;
+        if (leap_orientation == LEAP_X) pos = hand->palm.position.x;
+        if (leap_orientation == LEAP_Y) pos = hand->palm.position.y;
+        if (leap_orientation == LEAP_Z) pos = hand->palm.position.z;
+
+        if (pos > chuni_ir_leap_trigger) {
+            int8_t ir_id = (pos - chuni_ir_leap_trigger) / chuni_ir_leap_step - 1;
+            if (ir_id > 5) ir_id = 5;
+            if (ir_id < 0) ir_id = 0;
+            chuni_io_ir(&chuni_ir_map_local, ir_id, true);
+        }
+    }
+
+    chuni_ir_sensor_map = chuni_ir_map_local;
 }
 
 HRESULT chuni_io_jvs_init(void) {
@@ -127,19 +161,43 @@ HRESULT chuni_io_jvs_init(void) {
     
         log_info("hooked WNDPROC.\n");
     }
-    chuni_ir_height = GetPrivateProfileIntW(L"ir", L"height", 50, CONFIG) * 100;
-    chuni_ir_trigger_threshold = GetPrivateProfileIntW(L"ir", L"trigger", 70, CONFIG) * 100;
+    WCHAR str_control_src[16];
+    WCHAR str_leap_orientation[16];
+
+    chuni_ir_height = GetPrivateProfileIntW(L"ir", L"touch_height", 50, CONFIG) * 100;
+    chuni_ir_trigger_threshold = GetPrivateProfileIntW(L"ir", L"touch_trigger", 70, CONFIG) * 100;
+    chuni_ir_leap_trigger = GetPrivateProfileIntW(L"ir", L"leap_trigger", 500, CONFIG);
+    chuni_ir_leap_step = GetPrivateProfileIntW(L"ir", L"leap_step", 300, CONFIG);
     chuni_key_start = GetPrivateProfileIntW(L"slider", L"offset", 318, CONFIG) * 100;
     chuni_key_width = GetPrivateProfileIntW(L"slider", L"width", 40, CONFIG) * 100;
     raw_input = GetPrivateProfileIntW(L"io", L"raw_input", 0, CONFIG);
 
+    GetPrivateProfileStringW(L"ir", L"control_source", L"touch", str_control_src, 16, CONFIG);
+    GetPrivateProfileStringW(L"ir", L"leap_orientation", L"y", str_leap_orientation, 16, CONFIG);
+
     chuni_key_end = chuni_key_start + 32 * chuni_key_width;
+    ir_control_source = (wcscmp(str_control_src, L"leap") == 0) ? CSRC_LEAP : CSRC_TOUCH;
+    /**/ if (wcscmp(str_leap_orientation, L"x") == 0) leap_orientation = LEAP_X;
+    else if (wcscmp(str_leap_orientation, L"y") == 0) leap_orientation = LEAP_Y;
+    else if (wcscmp(str_leap_orientation, L"z") == 0) leap_orientation = LEAP_Z;
 
     for(int i = 0; i < MAXFINGERS; i++) finger_ids[i] = -1;
 
+    leap_connect(NULL);
+    leap_set_tracking_handler(leap_handler);
+    while (!leap_is_connected()) {
+        Sleep(10);
+    }
+    log_info("connected to leap service.\n");
+
     log_info("raw_input: %s\n", raw_input ? "enabled" : "disabled");
-    log_info("ir: trigger_threshold: %ld, height: %ld\n", chuni_ir_trigger_threshold/100, chuni_ir_height/100);
     log_info("key: start: %ld, width: %ld, end: %ld\n", chuni_key_start/100, chuni_key_width/100, chuni_key_end/100);
+
+    if (ir_control_source == CSRC_TOUCH) {
+        log_info("ir: touch mode, trigger_threshold: %ld, height: %ld\n", chuni_ir_trigger_threshold/100, chuni_ir_height/100);
+    } else {
+        log_info("ir: leap mode, axis: %u, trigger_threshold: %u, step: %u\n", leap_orientation, chuni_ir_leap_trigger, chuni_ir_leap_step);
+    }
 
     return S_OK;
 }
