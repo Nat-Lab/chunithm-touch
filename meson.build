@@ -27,7 +27,18 @@ endif
 cc = meson.get_compiler('c')
 
 inc = include_directories('.')
+
+leap_inc = include_directories('3rdparty/LeapSDK/include')
+arch = 'x86'
+if host_machine.cpu_family() == 'x86_64'
+    arch = 'x64'
+endif
+leap_lib_path = meson.source_root() + '/3rdparty/LeapSDK/lib/' + arch
+leap_lib = meson.get_compiler('c').find_library('LeapC', dirs: leap_lib_path)
+
 capnhook = subproject('capnhook')
 
+subdir('leapio')
+subdir('leap-configurator')
 subdir('chuniio')
 subdir('create-touch-window')

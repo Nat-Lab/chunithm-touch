@@ -1,4 +1,5 @@
 #pragma once
+#include <stdio.h>
 #define log_debug(fmt, ...) log("DEBUG", fmt, ## __VA_ARGS__)
 #define log_info(fmt, ...) log("INFO ", fmt, ## __VA_ARGS__)
 #define log_notice(fmt, ...) log("NOTE ", fmt, ## __VA_ARGS__)
