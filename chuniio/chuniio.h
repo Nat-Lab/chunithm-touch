@@ -17,7 +17,16 @@
 #include <winuser.h>
 #include <stdbool.h>
 #include <stdint.h>
+#define D2D_USE_C_DEFINITIONS
+#ifdef __MINGW32__
 #include <d2d1.h>
+#else
+#ifdef _MSC_VER
+#include "3rdparty/d2d1.h"
+#else
+#error "don't know what to do with d2d1."
+#endif
+#endif
 #pragma comment(lib, "d2d1.lib")
 
 typedef void (*chuni_io_slider_callback_t)(const uint8_t *state);
