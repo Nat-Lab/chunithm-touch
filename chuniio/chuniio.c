@@ -379,10 +379,10 @@ void chuni_io_slider_set_leds(const uint8_t* brg) {
             D2D1_COLOR_F c = { brg[ii+1]/255., brg[ii+2]/255., brg[ii]/255., 1. };
             ID2D1SolidColorBrush_SetColor(brushes[i], &c);
         }
+        D2D1_COLOR_F c = { brg[91]/255., brg[92]/255., brg[90]/255., 1. };
+        ID2D1SolidColorBrush_SetColor(brushes[0], &c); // hmm...
+        render();
     }
-    D2D1_COLOR_F c = { brg[91]/255., brg[92]/255., brg[90]/255., 1. };
-    ID2D1SolidColorBrush_SetColor(brushes[0], &c); // hmm...
-    render();
 }
 
 static unsigned int __stdcall chuni_io_slider_thread_proc(void* ctx) {
