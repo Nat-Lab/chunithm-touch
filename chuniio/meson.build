@@ -5,7 +5,7 @@ chuniio_dll = shared_library(
     implicit_include_directories : false,
     c_pch : '../precompiled.h',
     link_with: [leapio_lib],
-    dependencies: leap_lib,
+    dependencies: [leap_lib, d2d1_lib],
     vs_module_defs : 'chuniio.def',
     sources : [
         'chuniio.c',
