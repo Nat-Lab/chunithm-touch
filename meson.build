@@ -1,4 +1,4 @@
-project('chunithm-touch', 'c', version: '0.2.0', default_options: ['warning_level=2'])
+project('chunithm-touch', 'c', version: '0.4.0', default_options: ['warning_level=2'])
 
 add_project_arguments(
     '-DCOBJMACROS',
@@ -34,7 +34,8 @@ if host_machine.cpu_family() == 'x86_64'
     arch = 'x64'
 endif
 leap_lib_path = meson.source_root() + '/3rdparty/LeapSDK/lib/' + arch
-leap_lib = meson.get_compiler('c').find_library('LeapC', dirs: leap_lib_path)
+leap_lib = cc.find_library('LeapC', dirs: leap_lib_path)
+d2d1_lib = cc.find_library('d2d1')
 
 capnhook = subproject('capnhook')
 

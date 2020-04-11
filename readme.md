@@ -22,6 +22,11 @@ Just tap/slide on the screen. Slide up to simulate the IR sensor if you are usin
 Settings will be read from `chunitouch.ini`. Here's a list of configurable options:
 
 ```
+[options]
+; use a separate window for touch input. slider.offset will be ignore if 
+; enabled.
+separate_control = 0
+
 [ir]
 ; source of control. 'touch' for touchscreen and 'leap' for leap motion.
 control_source = touch

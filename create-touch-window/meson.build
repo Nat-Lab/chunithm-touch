@@ -4,9 +4,7 @@ chuniio_dll = shared_library(
     include_directories : inc,
     implicit_include_directories : false,
     c_pch : '../precompiled.h',
-    dependencies : [
-        capnhook.get_variable('hook_dep')
-    ],
+    dependencies: capnhook.get_variable('hook_dep'),
     sources : [
         'dllmain.c',
         'create-touch-window.c',
