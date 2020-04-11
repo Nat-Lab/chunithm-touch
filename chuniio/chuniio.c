@@ -221,7 +221,7 @@ void leap_handler(const LEAP_TRACKING_EVENT *ev) {
         if (leap_orientation == LEAP_Z) pos = hand->palm.position.z;
 
         if ((!leap_reverted && pos > chuni_ir_leap_trigger) || (leap_reverted && chuni_ir_leap_trigger > pos)) {
-            int8_t ir_id = (pos - chuni_ir_leap_trigger) / (leap_reverted ? -1 : 1) * chuni_ir_leap_step - 1;
+            int8_t ir_id = (pos - chuni_ir_leap_trigger) / ((leap_reverted ? -1 : 1) * chuni_ir_leap_step) - 1;
             if (ir_id > 5) ir_id = 5;
             if (ir_id < 0) ir_id = 0;
             chuni_io_ir(&chuni_ir_map_local, ir_id, true);

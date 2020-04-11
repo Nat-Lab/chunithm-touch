@@ -32,13 +32,14 @@ void handle_track(const LEAP_TRACKING_EVENT *ev) {
             if (leap_orientation == LEAP_Y) pos = _y;
             if (leap_orientation == LEAP_Z) pos = _z;
             if ((!leap_reverted && pos > leap_trigger) || (leap_reverted && leap_trigger > pos)) {
-                id = (pos - leap_trigger) / (leap_reverted ? -1 : 1) * leap_step - 1;
+                id = (pos - leap_trigger) / ((leap_reverted ? -1 : 1) * leap_step) - 1;
                 if (id > 5) id = 5;
                 if (id < 0) id = 0;
             }
 
             if (last_id != id) {
                 if (id > 0) log_info("IR %d triggered.\n", id + 1);
+                else log_info("No IR triggered.");
                 last_id = id;
             }
         }
@@ -138,6 +139,7 @@ void test() {
     prompt("Press [ENTER] to begin test, press [ENTER] again to end.", NULL, 0);
     _test_mode = true;
     (void) getchar();
+    _test_mode = false;
 }
 
 int main () {
