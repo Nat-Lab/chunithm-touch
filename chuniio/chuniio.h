@@ -17,6 +17,8 @@
 #include <winuser.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <d2d1.h>
+#pragma comment(lib, "d2d1.lib")
 
 typedef void (*chuni_io_slider_callback_t)(const uint8_t *state);
 HRESULT chuni_io_jvs_init(void);

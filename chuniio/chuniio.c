@@ -6,9 +6,14 @@
 #include "chuniio.h"
 #include "leapio/leapio.h"
 #include "log.h"
+
 #define CHUNI_WINPROC CallWindowProc(chuni_wndproc, hwnd, msg, w_param, l_param)
+#define DEF_WINPROC DefWindowProc(hwnd, msg, w_param, l_param)
 #define MAXFINGERS 10
 #define CONFIG L".\\chunitouch.ini"
+
+extern IMAGE_DOS_HEADER __ImageBase;
+#define M_HINST ((HINSTANCE) &__ImageBase)
 
 #define CSRC_TOUCH 0
 #define CSRC_LEAP 1
@@ -17,6 +22,7 @@
 #define LEAP_Y 1
 #define LEAP_Z 2
 
+static BOOL septated_control = FALSE;
 static LONG chuni_ir_trigger_threshold = 7000;
 static LONG chuni_ir_height = 5000;
 static UINT chuni_ir_leap_trigger = 500;
@@ -71,15 +77,14 @@ static int get_finger_index(DWORD id) {
     return avail_indx;
 }
 
-LRESULT CALLBACK chuni_winproc_hook(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param) {
-    if (msg != WM_TOUCH) return CHUNI_WINPROC;
+LRESULT CALLBACK winproc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param) {
+    if (msg != WM_TOUCH) return septated_control ? DEF_WINPROC : CHUNI_WINPROC;
 
     UINT fingers = LOWORD(w_param);
-    if (fingers <= 0) return CHUNI_WINPROC;
+    if (fingers <= 0) return septated_control ? DEF_WINPROC : CHUNI_WINPROC;
     POINT local_point;
     TOUCHINPUT inputs[MAXFINGERS];
     static uint8_t clicked_sliders[32];
-
 
     memset(clicked_sliders, 0, 32);
     uint8_t chuni_ir_map_local = 0;
@@ -116,10 +121,34 @@ LRESULT CALLBACK chuni_winproc_hook(HWND hwnd, UINT msg, WPARAM w_param, LPARAM 
 
     memcpy(chuni_sliders, clicked_sliders, 32);
     chuni_ir_sensor_map = chuni_ir_map_local;
-    return CHUNI_WINPROC;
+    return septated_control ? DEF_WINPROC : CHUNI_WINPROC;
 }
 
-void leap_handler (const LEAP_TRACKING_EVENT *ev) {
+static void make_control_window() {
+    ID2D1Factory* d2df = NULL;
+    D2D1_FACTORY_OPTIONS opt = { D2D1_DEBUG_LEVEL_INFORMATION };
+    if (D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &IID_ID2D1Factory, &opt, &d2df) != S_OK) {
+        log_fatal("can't create d2d factoy.\n");
+        // return?
+    }
+    const wchar_t *name = L"chuni-controller";
+
+    WNDCLASS c = { CS_NOCLOSE, winproc, 0, 0, M_HINST, NULL, LoadCursor(0, IDC_ARROW), 1, NULL, name };
+    RegisterClass(&c);
+    HWND *hwnd = CreateWindowEx(
+        0, name, name, 
+        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
+        CW_USEDEFAULT, CW_USEDEFAULT, 32 * chuni_key_width, 
+        chuni_ir_height * 12 + chuni_ir_trigger_threshold, NULL, NULL, M_HINST, NULL
+    );
+
+    if (!hwnd) {
+        log_fatal("can't create control window.\n");
+        // return ?
+    }
+}
+
+void leap_handler(const LEAP_TRACKING_EVENT *ev) {
     uint8_t chuni_ir_map_local = 0;
 
     for(uint32_t h = 0; h < ev->nHands; h++) {
@@ -156,9 +185,9 @@ HRESULT chuni_io_jvs_init(void) {
         ULONG flags;
         if (!IsTouchWindow(hwnd, &flags)) log_warn("IsTouchWindow() returned false, touch might not work.\n");
 #ifdef _WIN64
-        chuni_wndproc = (WNDPROC)SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)&chuni_winproc_hook);
+        chuni_wndproc = (WNDPROC)SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)&winproc);
 #else
-        chuni_wndproc = (WNDPROC)SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)&chuni_winproc_hook);
+        chuni_wndproc = (WNDPROC)SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)&winproc);
 #endif
     
         log_info("hooked WNDPROC.\n");
@@ -166,6 +195,7 @@ HRESULT chuni_io_jvs_init(void) {
     WCHAR str_control_src[16];
     WCHAR str_leap_orientation[16];
 
+    septated_control = GetPrivateProfileIntW(L"option", L"septated_control", FALSE, CONFIG);
     chuni_ir_height = GetPrivateProfileIntW(L"ir", L"touch_height", 50, CONFIG) * 100;
     chuni_ir_trigger_threshold = GetPrivateProfileIntW(L"ir", L"touch_trigger", 70, CONFIG) * 100;
     chuni_ir_leap_trigger = GetPrivateProfileIntW(L"ir", L"leap_trigger", 500, CONFIG);
@@ -174,6 +204,11 @@ HRESULT chuni_io_jvs_init(void) {
     chuni_key_width = GetPrivateProfileIntW(L"slider", L"width", 40, CONFIG) * 100;
     raw_input = GetPrivateProfileIntW(L"io", L"raw_input", 0, CONFIG);
     ir_keep_slider = GetPrivateProfileIntW(L"misc", L"ir_keep_slider", 0, CONFIG);
+
+    if (septated_control) {
+        chuni_key_start = 0;
+        log_info("ignoring slider.offset in septated_control mode.\n");
+    }
 
     GetPrivateProfileStringW(L"ir", L"control_source", L"touch", str_control_src, 16, CONFIG);
     GetPrivateProfileStringW(L"ir", L"leap_orientation", L"y", str_leap_orientation, 16, CONFIG);
@@ -198,6 +233,7 @@ HRESULT chuni_io_jvs_init(void) {
 
 
     log_info("raw_input: %s\n", raw_input ? "enabled" : "disabled");
+    log_info("septated_control: %s\n", septated_control ? "enabled" : "disabled");
     log_info("ir_keep_slider: %s\n", ir_keep_slider ? "enabled" : "disabled");
     log_info("key: start: %ld, width: %ld, end: %ld\n", chuni_key_start/100, chuni_key_width/100, chuni_key_end/100);
 
@@ -205,6 +241,11 @@ HRESULT chuni_io_jvs_init(void) {
         log_info("ir: touch mode, trigger_threshold: %ld, height: %ld\n", chuni_ir_trigger_threshold/100, chuni_ir_height/100);
     } else {
         log_info("ir: leap mode, axis: %u, trigger_threshold: %u, step: %u\n", leap_orientation, chuni_ir_leap_trigger, chuni_ir_leap_step);
+    }
+
+    if (septated_control) {
+        log_info("creating septated control window...\n");
+        make_control_window();
     }
 
     return S_OK;
