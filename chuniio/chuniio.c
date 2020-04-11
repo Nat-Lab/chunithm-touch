@@ -380,7 +380,7 @@ void chuni_io_slider_set_leds(const uint8_t* brg) {
             ID2D1SolidColorBrush_SetColor(brushes[i], &c);
         }
     }
-    D2D1_COLOR_F c = { brg[94]/255., brg[95]/255., brg[93]/255., 1. };
+    D2D1_COLOR_F c = { brg[91]/255., brg[92]/255., brg[90]/255., 1. };
     ID2D1SolidColorBrush_SetColor(brushes[0], &c); // hmm...
     render();
 }
