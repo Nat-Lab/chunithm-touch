@@ -39,7 +39,7 @@ void handle_track(const LEAP_TRACKING_EVENT *ev) {
 
             if (last_id != id) {
                 if (id > 0) log_info("IR %d triggered.\n", id + 1);
-                else log_info("No IR triggered.\n", id + 1);
+                else log_info("No IR triggered.\n");
                 last_id = id;
             }
         }
@@ -113,6 +113,17 @@ int main () {
     leap_trigger = GetPrivateProfileIntW(L"ir", L"leap_trigger", 50, CONFIG);
     leap_step = GetPrivateProfileIntW(L"ir", L"leap_step", 30, CONFIG);
 
+    WCHAR str_leap_orientation[16];
+
+    GetPrivateProfileStringW(L"ir", L"leap_orientation", L"y", str_leap_orientation, 16, CONFIG);
+
+    /**/ if (wcscmp(str_leap_orientation, L"x") == 0) leap_orientation = LEAP_X;
+    else if (wcscmp(str_leap_orientation, L"y") == 0) leap_orientation = LEAP_Y;
+    else if (wcscmp(str_leap_orientation, L"z") == 0) leap_orientation = LEAP_Z;
+    else if (wcscmp(str_leap_orientation, L"-x") == 0) { leap_orientation = LEAP_X; leap_reverted = TRUE; }
+    else if (wcscmp(str_leap_orientation, L"-y") == 0) { leap_orientation = LEAP_Y; leap_reverted = TRUE; }
+    else if (wcscmp(str_leap_orientation, L"-z") == 0) { leap_orientation = LEAP_Z; leap_reverted = TRUE; }
+
     log_info("connecting to leap service...\n");
     leap_set_tracking_handler(handle_track); // debug
 
@@ -124,7 +135,7 @@ int main () {
 
     while (TRUE) {
         printf("chuni-touch: leap configurator\n");
-        printf("current configured values: trigger: %d, step: %d.\n", leap_trigger, leap_step);
+        printf("current configured values: trigger: %d, step: %d, orientation: %s%d.\n", leap_trigger, leap_step, leap_reverted ? "-" : "", leap_orientation);
         printf("    c) configure\n");
         printf("    t) test\n");
         printf("\n");
