@@ -30,7 +30,7 @@ static LONG chuni_ir_height = 5000;
 static UINT chuni_ir_leap_trigger = 500;
 static UINT chuni_ir_leap_step = 300;
 static uint8_t leap_orientation = LEAP_Y;
-static BOOL leap_reverted = FALSE;
+static BOOL leap_inverted = FALSE;
 
 static LONG chuni_key_start = 31800;
 static LONG chuni_key_width = 4000;
@@ -220,8 +220,8 @@ void leap_handler(const LEAP_TRACKING_EVENT *ev) {
         if (leap_orientation == LEAP_Y) pos = hand->palm.position.y;
         if (leap_orientation == LEAP_Z) pos = hand->palm.position.z;
 
-        if ((!leap_reverted && pos > chuni_ir_leap_trigger) || (leap_reverted && chuni_ir_leap_trigger > pos)) {
-            int8_t ir_id = (pos - chuni_ir_leap_trigger) / ((leap_reverted ? -1 : 1) * chuni_ir_leap_step) - 1;
+        if ((!leap_inverted && pos > chuni_ir_leap_trigger) || (leap_inverted && chuni_ir_leap_trigger > pos)) {
+            int8_t ir_id = (pos - chuni_ir_leap_trigger) / ((leap_inverted ? -1 : 1) * chuni_ir_leap_step) - 1;
             if (ir_id > 5) ir_id = 5;
             if (ir_id < 0) ir_id = 0;
             chuni_io_ir(&chuni_ir_map_local, ir_id, true);
@@ -281,9 +281,9 @@ HRESULT chuni_io_jvs_init(void) {
     /**/ if (wcscmp(str_leap_orientation, L"x") == 0) leap_orientation = LEAP_X;
     else if (wcscmp(str_leap_orientation, L"y") == 0) leap_orientation = LEAP_Y;
     else if (wcscmp(str_leap_orientation, L"z") == 0) leap_orientation = LEAP_Z;
-    else if (wcscmp(str_leap_orientation, L"-x") == 0) { leap_orientation = LEAP_X; leap_reverted = TRUE; }
-    else if (wcscmp(str_leap_orientation, L"-y") == 0) { leap_orientation = LEAP_Y; leap_reverted = TRUE; }
-    else if (wcscmp(str_leap_orientation, L"-z") == 0) { leap_orientation = LEAP_Z; leap_reverted = TRUE; }
+    else if (wcscmp(str_leap_orientation, L"-x") == 0) { leap_orientation = LEAP_X; leap_inverted = TRUE; }
+    else if (wcscmp(str_leap_orientation, L"-y") == 0) { leap_orientation = LEAP_Y; leap_inverted = TRUE; }
+    else if (wcscmp(str_leap_orientation, L"-z") == 0) { leap_orientation = LEAP_Z; leap_inverted = TRUE; }
 
     for(int i = 0; i < MAXFINGERS; i++) finger_ids[i] = -1;
 
