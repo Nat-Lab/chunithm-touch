@@ -135,15 +135,15 @@ LRESULT CALLBACK winproc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param) {
 static void make_control_window() {
     ID2D1Factory* d2df = NULL;
     D2D1_FACTORY_OPTIONS opt = { D2D1_DEBUG_LEVEL_INFORMATION };
-    if (D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &IID_ID2D1Factory, &opt, &d2df) != S_OK) {
+    if (D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &IID_ID2D1Factory, &opt, (void **) &d2df) != S_OK) {
         log_fatal("can't create d2d factoy.\n");
         // return?
     }
-    const wchar_t *name = L"chuni-controller";
+    const char *name = "chuni-controller";
 
-    WNDCLASS c = { CS_NOCLOSE, winproc, 0, 0, M_HINST, NULL, LoadCursor(0, IDC_ARROW), 1, NULL, name };
+    WNDCLASS c = { CS_NOCLOSE, winproc, 0, 0, M_HINST, NULL, LoadCursor(0, IDC_ARROW), NULL, NULL, name };
     RegisterClass(&c);
-    HWND *hwnd = CreateWindowEx(
+    HWND hwnd = CreateWindowEx(
         0, name, name, 
         WS_OVERLAPPED | WS_CAPTION,
         CW_USEDEFAULT, CW_USEDEFAULT, (32 * chuni_key_width)/100, 
