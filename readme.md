@@ -30,21 +30,21 @@ separate_control = 0
 [ir]
 ; source of control. 'touch' for touchscreen and 'leap' for leap motion.
 control_source = touch
-; height of each touch IR sensor
+; height of each touch IR sensor (unit: pixel)
 touch_height = 50
 ; touch IR trigger threshold (number of pixels required to move up for a move to
 ; be registered as air)
 touch_trigger = 70
-; specifies the axis to track hands on. x, y, or z.
+; specifies the axis to track hands on. x, y, z, -x, -y, or -z.
 leap_orientation = y
 ; the minimum height of your hand(s) need to be for it to be registered as air
 ; (unit: millimeters)
-leap_trigger = 500
+leap_trigger = 100
 ; the height of each virtual IR sensor (unit: millimeters)
-leap_step = 300
+leap_step = 30
 
 [slider]
-; slider's width
+; slider's width (unit: pixel)
 width = 40
 ; slider's x-offset (pixels from the left of the screen)
 offset = 318

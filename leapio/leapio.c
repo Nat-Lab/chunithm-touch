@@ -42,7 +42,7 @@ static void leap_log(const LEAP_LOG_EVENT* e) {
         case eLeapLogSeverity_Unknown: log_notice("%s.\n", e->message); break;
         case eLeapLogSeverity_Critical: log_fatal("%s.\n", e->message); break;
         case eLeapLogSeverity_Warning: log_warn("%s.\n", e->message); break;
-        case eLeapLogSeverity_Information: log_info("%s.\n", e->message); break;
+        // case eLeapLogSeverity_Information: log_info("%s.\n", e->message); break;
     }
 }
 

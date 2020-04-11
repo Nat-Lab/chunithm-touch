@@ -30,6 +30,7 @@ static LONG chuni_ir_height = 5000;
 static UINT chuni_ir_leap_trigger = 500;
 static UINT chuni_ir_leap_step = 300;
 static uint8_t leap_orientation = LEAP_Y;
+static BOOL leap_inverted = FALSE;
 
 static LONG chuni_key_start = 31800;
 static LONG chuni_key_width = 4000;
@@ -156,7 +157,7 @@ static void make_control_window() {
     D2D1_FACTORY_OPTIONS opt = { D2D1_DEBUG_LEVEL_INFORMATION };
     if (D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &IID_ID2D1Factory, &opt, (void **) &d2df) != S_OK) {
         log_fatal("can't create d2d factoy.\n");
-        // return?
+        return;
     }
     const char *name = "chuni-controller";
 
@@ -195,14 +196,14 @@ static void make_control_window() {
     
     if (ID2D1Factory_CreateHwndRenderTarget(d2df, &rtp, &hrtp, &target) < 0) {
         log_fatal("can't create d2d render target.\n");
-        // return
+        return;
     }
 
     for (int i = 0; i < 32; i++) {
         D2D1_COLOR_F color = { i/32., i/32., i/32., 1. };
         if (ID2D1HwndRenderTarget_CreateSolidColorBrush(target, &color, NULL, &brushes[i]) < 0) {
             log_fatal("d2d brush creation failed.\n");
-            // return
+            return;
         }
     }
 
@@ -219,8 +220,8 @@ void leap_handler(const LEAP_TRACKING_EVENT *ev) {
         if (leap_orientation == LEAP_Y) pos = hand->palm.position.y;
         if (leap_orientation == LEAP_Z) pos = hand->palm.position.z;
 
-        if (pos > chuni_ir_leap_trigger) {
-            int8_t ir_id = (pos - chuni_ir_leap_trigger) / chuni_ir_leap_step - 1;
+        if ((!leap_inverted && pos > chuni_ir_leap_trigger) || (leap_inverted && chuni_ir_leap_trigger > pos)) {
+            int8_t ir_id = (leap_inverted ? -1 : 1) * (pos - chuni_ir_leap_trigger) / chuni_ir_leap_step + 1;
             if (ir_id > 5) ir_id = 5;
             if (ir_id < 0) ir_id = 0;
             chuni_io_ir(&chuni_ir_map_local, ir_id, true);
@@ -247,8 +248,8 @@ HRESULT chuni_io_jvs_init(void) {
     separate_control = GetPrivateProfileIntW(L"options", L"separate_control", FALSE, CONFIG);
     chuni_ir_height = GetPrivateProfileIntW(L"ir", L"touch_height", 50, CONFIG);
     chuni_ir_trigger_threshold = GetPrivateProfileIntW(L"ir", L"touch_trigger", 70, CONFIG);
-    chuni_ir_leap_trigger = GetPrivateProfileIntW(L"ir", L"leap_trigger", 500, CONFIG);
-    chuni_ir_leap_step = GetPrivateProfileIntW(L"ir", L"leap_step", 300, CONFIG);
+    chuni_ir_leap_trigger = GetPrivateProfileIntW(L"ir", L"leap_trigger", 50, CONFIG);
+    chuni_ir_leap_step = GetPrivateProfileIntW(L"ir", L"leap_step", 30, CONFIG);
     chuni_key_start = GetPrivateProfileIntW(L"slider", L"offset", 318, CONFIG);
     chuni_key_width = GetPrivateProfileIntW(L"slider", L"width", 40, CONFIG);
     raw_input = GetPrivateProfileIntW(L"io", L"raw_input", 0, CONFIG);
@@ -280,6 +281,9 @@ HRESULT chuni_io_jvs_init(void) {
     /**/ if (wcscmp(str_leap_orientation, L"x") == 0) leap_orientation = LEAP_X;
     else if (wcscmp(str_leap_orientation, L"y") == 0) leap_orientation = LEAP_Y;
     else if (wcscmp(str_leap_orientation, L"z") == 0) leap_orientation = LEAP_Z;
+    else if (wcscmp(str_leap_orientation, L"-x") == 0) { leap_orientation = LEAP_X; leap_inverted = TRUE; }
+    else if (wcscmp(str_leap_orientation, L"-y") == 0) { leap_orientation = LEAP_Y; leap_inverted = TRUE; }
+    else if (wcscmp(str_leap_orientation, L"-z") == 0) { leap_orientation = LEAP_Z; leap_inverted = TRUE; }
 
     for(int i = 0; i < MAXFINGERS; i++) finger_ids[i] = -1;
 
