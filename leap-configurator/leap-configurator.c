@@ -39,7 +39,6 @@ void handle_track(const LEAP_TRACKING_EVENT *ev) {
 
             if (last_id != id) {
                 if (id > 0) log_info("IR %d triggered.\n", id + 1);
-                else log_info("No IR triggered.\n");
                 last_id = id;
             }
         }
@@ -99,6 +98,38 @@ void configure() {
         high_z = _z;
         break;
     }
+    
+    log_info("low: (%f, %f, %f), high: (%f, %f, %f).\n", low_x, low_y, low_z, high_x, high_y, high_z);
+    float dx = high_x - low_x;
+    float dy = high_y - low_y;
+    float dz = high_z - low_z;
+    float dmax = max(max(abs(dx), abs(dy)), abs(dz));
+
+    if (dmax == abs(dx)) {
+        leap_orientation = LEAP_X;
+        leap_trigger = low_x;
+    }
+    if (dmax == abs(dy)) {
+        leap_orientation = LEAP_Y;
+        leap_trigger = low_y;
+    }
+    if (dmax == abs(dz)) {
+        leap_orientation = LEAP_Z;
+        leap_trigger = low_z;
+    }
+    if (leap_orientation == LEAP_X && dx < 0) {
+        leap_reverted = TRUE;
+        leap_trigger = high_x;
+    }
+    if (leap_orientation == LEAP_Y && dy < 0) {
+        leap_reverted = TRUE;
+        leap_trigger = high_y;
+    }
+    if (leap_orientation == LEAP_Z && dz < 0) {
+        leap_reverted = TRUE;
+        leap_trigger = high_z;
+    }
+    leap_step = dmax/6;
     
 }
 
