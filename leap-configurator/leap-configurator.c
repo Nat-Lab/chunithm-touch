@@ -1,3 +1,4 @@
+#include <math.h>
 #include "leapio/leapio.h"
 #include "log.h"
 
@@ -6,6 +7,7 @@
 static BOOL _test_mode = FALSE;
 static uint32_t _n_hands = 0;
 static float _x, _y, _z;
+static BOOL use_leap;
 static UINT leap_trigger;
 static UINT leap_step;
 static UINT leap_orientation;
@@ -39,7 +41,7 @@ void handle_track(const LEAP_TRACKING_EVENT *ev) {
 
             if (last_id != id) {
                 if (id > 0) log_info("IR %d triggered.\n", id + 1);
-                else log_info("No IR triggered.");
+                else log_info("No IR triggered.\n");
                 last_id = id;
             }
         }
@@ -104,17 +106,21 @@ void configure() {
     float dx = high_x - low_x;
     float dy = high_y - low_y;
     float dz = high_z - low_z;
-    float dmax = max(max(abs(dx), abs(dy)), abs(dz));
+    float dmax = max(max(fabs(dx), fabs(dy)), fabs(dz));
+    WCHAR leap_orientation_char;
 
-    if (dmax == abs(dx)) {
+    if (dmax == fabs(dx)) {
+        leap_orientation_char = 'x';
         leap_orientation = LEAP_X;
         leap_trigger = low_x;
     }
-    if (dmax == abs(dy)) {
+    if (dmax == fabs(dy)) {
+        leap_orientation_char = 'y';
         leap_orientation = LEAP_Y;
         leap_trigger = low_y;
     }
-    if (dmax == abs(dz)) {
+    if (dmax == fabs(dz)) {
+        leap_orientation_char = 'z';
         leap_orientation = LEAP_Z;
         leap_trigger = low_z;
     }
@@ -131,7 +137,19 @@ void configure() {
         leap_trigger = high_z;
     }
     leap_step = dmax/6;
-    
+    use_leap = TRUE;
+
+    WCHAR leap_trigger_str[16];
+    WCHAR leap_step_str[16];
+    WCHAR leap_orientation_str[16];
+
+    swprintf_s(leap_trigger_str, 16, L"%d", leap_trigger);
+    swprintf_s(leap_step_str, 16, L"%d", leap_step);
+    swprintf_s(leap_orientation_str, 16, L"%s%c", leap_reverted ? L"-" : L"", leap_orientation_char);
+
+    WritePrivateProfileStringW(L"ir", L"leap_trigger", leap_trigger_str, CONFIG);
+    WritePrivateProfileStringW(L"ir", L"leap_step", leap_step_str, CONFIG);
+    WritePrivateProfileStringW(L"ir", L"leap_orientation", leap_orientation_str, CONFIG);
 }
 
 void test() {
@@ -146,9 +164,12 @@ int main () {
     leap_trigger = GetPrivateProfileIntW(L"ir", L"leap_trigger", 50, CONFIG);
     leap_step = GetPrivateProfileIntW(L"ir", L"leap_step", 30, CONFIG);
 
+    WCHAR str_control_src[16];
     WCHAR str_leap_orientation[16];
 
+    GetPrivateProfileStringW(L"ir", L"control_source", L"touch", str_control_src, 16, CONFIG);
     GetPrivateProfileStringW(L"ir", L"leap_orientation", L"y", str_leap_orientation, 16, CONFIG);
+    use_leap = wcscmp(str_control_src, L"leap") == 0;
 
     /**/ if (wcscmp(str_leap_orientation, L"x") == 0) leap_orientation = LEAP_X;
     else if (wcscmp(str_leap_orientation, L"y") == 0) leap_orientation = LEAP_Y;
@@ -168,7 +189,7 @@ int main () {
 
     while (TRUE) {
         printf("chuni-touch: leap configurator\n");
-        printf("current configured values: trigger: %d, step: %d, orientation: %s%d.\n", leap_trigger, leap_step, leap_reverted ? "-" : "", leap_orientation);
+        printf("current configured values: enabled: %s, trigger: %d, step: %d, orientation: %s%d.\n", use_leap ? "true" : "false", leap_trigger, leap_step, leap_reverted ? "-" : "", leap_orientation);
         printf("    c) configure\n");
         printf("    t) test\n");
         printf("\n");
