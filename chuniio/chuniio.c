@@ -243,18 +243,6 @@ HRESULT chuni_io_jvs_init(void) {
     freopen_s(&fp, "CONOUT$", "w", stdout);
     log_info("allocated debug console.\n");
 
-    if (hwnd == NULL) log_error("can't get window handle for chuni.\n");
-    else {
-        ULONG flags;
-        if (!IsTouchWindow(hwnd, &flags)) log_warn("IsTouchWindow() returned false, touch might not work.\n");
-#ifdef _WIN64
-        chuni_wndproc = (WNDPROC)SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)&winproc);
-#else
-        chuni_wndproc = (WNDPROC)SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)&winproc);
-#endif
-    
-        log_info("hooked WNDPROC.\n");
-    }
     WCHAR str_control_src[16];
     WCHAR str_leap_orientation[16];
 
@@ -271,6 +259,19 @@ HRESULT chuni_io_jvs_init(void) {
     if (septated_control) {
         chuni_key_start = 0;
         log_info("ignoring slider.offset in septated_control mode.\n");
+    }
+
+    if (hwnd == NULL) log_error("can't get window handle for chuni.\n");
+    else if (!septated_control) {
+        ULONG flags;
+        if (!IsTouchWindow(hwnd, &flags)) log_warn("IsTouchWindow() returned false, touch might not work.\n");
+#ifdef _WIN64
+        chuni_wndproc = (WNDPROC)SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)&winproc);
+#else
+        chuni_wndproc = (WNDPROC)SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)&winproc);
+#endif
+    
+        log_info("hooked WNDPROC.\n");
     }
 
     GetPrivateProfileStringW(L"ir", L"control_source", L"touch", str_control_src, 16, CONFIG);
@@ -374,8 +375,14 @@ void chuni_io_slider_stop(void) {
     chuni_io_slider_stop_flag = false;
 }
 
-void chuni_io_slider_set_leds(const uint8_t* rgb) {
-    // we are touching chuni directly, so... don't care
+void chuni_io_slider_set_leds(const uint8_t* bgr) {
+    if (septated_control) {
+        for (int i = 0, ii = 0; i < 32; i++, ii += 3) {
+            D2D1_COLOR_F c = { bgr[ii]/32., bgr[ii+1]/32., bgr[ii+2]/32., 1. };
+            ID2D1SolidColorBrush_SetColor(brushes[i], &c);
+        }
+    }
+    render();
 }
 
 static unsigned int __stdcall chuni_io_slider_thread_proc(void* ctx) {
