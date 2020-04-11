@@ -23,7 +23,7 @@ Settings will be read from `chunitouch.ini`. Here's a list of configurable optio
 
 ```
 [options]
-; open a separate window for touch input. slider.offset will be ignore if 
+; use a separate window for touch input. slider.offset will be ignore if 
 ; enabled.
 separate_control = 0
 
