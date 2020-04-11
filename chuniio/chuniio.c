@@ -156,7 +156,7 @@ static void make_control_window() {
     D2D1_FACTORY_OPTIONS opt = { D2D1_DEBUG_LEVEL_INFORMATION };
     if (D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &IID_ID2D1Factory, &opt, (void **) &d2df) != S_OK) {
         log_fatal("can't create d2d factoy.\n");
-        // return?
+        return;
     }
     const char *name = "chuni-controller";
 
@@ -195,14 +195,14 @@ static void make_control_window() {
     
     if (ID2D1Factory_CreateHwndRenderTarget(d2df, &rtp, &hrtp, &target) < 0) {
         log_fatal("can't create d2d render target.\n");
-        // return
+        return;
     }
 
     for (int i = 0; i < 32; i++) {
         D2D1_COLOR_F color = { i/32., i/32., i/32., 1. };
         if (ID2D1HwndRenderTarget_CreateSolidColorBrush(target, &color, NULL, &brushes[i]) < 0) {
             log_fatal("d2d brush creation failed.\n");
-            // return
+            return;
         }
     }
 
