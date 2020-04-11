@@ -24,7 +24,7 @@ extern IMAGE_DOS_HEADER __ImageBase;
 #define LEAP_Y 1
 #define LEAP_Z 2
 
-static BOOL separat_control = FALSE;
+static BOOL separate_control = FALSE;
 static LONG chuni_ir_trigger_threshold = 7000;
 static LONG chuni_ir_height = 5000;
 static UINT chuni_ir_leap_trigger = 500;
@@ -84,10 +84,10 @@ static int get_finger_index(DWORD id) {
 }
 
 LRESULT CALLBACK winproc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param) {
-    if (msg != WM_TOUCH) return separat_control ? DEF_WINPROC : CHUNI_WINPROC;
+    if (msg != WM_TOUCH) return separate_control ? DEF_WINPROC : CHUNI_WINPROC;
 
     UINT fingers = LOWORD(w_param);
-    if (fingers <= 0) return separat_control ? DEF_WINPROC : CHUNI_WINPROC;
+    if (fingers <= 0) return separate_control ? DEF_WINPROC : CHUNI_WINPROC;
     POINT local_point;
     TOUCHINPUT inputs[MAXFINGERS];
     static uint8_t clicked_sliders[32];
@@ -131,7 +131,7 @@ LRESULT CALLBACK winproc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param) {
 
     memcpy(chuni_sliders, clicked_sliders, 32);
     chuni_ir_sensor_map = chuni_ir_map_local;
-    return separat_control ? DEF_WINPROC : CHUNI_WINPROC;
+    return separate_control ? DEF_WINPROC : CHUNI_WINPROC;
 }
 
 static void render() {
@@ -244,7 +244,7 @@ HRESULT chuni_io_jvs_init(void) {
     WCHAR str_control_src[16];
     WCHAR str_leap_orientation[16];
 
-    separat_control = GetPrivateProfileIntW(L"options", L"separat_control", FALSE, CONFIG);
+    separate_control = GetPrivateProfileIntW(L"options", L"separate_control", FALSE, CONFIG);
     chuni_ir_height = GetPrivateProfileIntW(L"ir", L"touch_height", 50, CONFIG);
     chuni_ir_trigger_threshold = GetPrivateProfileIntW(L"ir", L"touch_trigger", 70, CONFIG);
     chuni_ir_leap_trigger = GetPrivateProfileIntW(L"ir", L"leap_trigger", 500, CONFIG);
@@ -254,13 +254,13 @@ HRESULT chuni_io_jvs_init(void) {
     raw_input = GetPrivateProfileIntW(L"io", L"raw_input", 0, CONFIG);
     ir_keep_slider = GetPrivateProfileIntW(L"misc", L"ir_keep_slider", 0, CONFIG);
 
-    if (separat_control) {
+    if (separate_control) {
         chuni_key_start = 0;
-        log_info("ignoring slider.offset in separat_control mode.\n");
+        log_info("ignoring slider.offset in separate_control mode.\n");
     }
 
     if (hwnd == NULL) log_error("can't get window handle for chuni.\n");
-    else if (!separat_control) {
+    else if (!separate_control) {
         ULONG flags;
         if (!IsTouchWindow(hwnd, &flags)) log_warn("IsTouchWindow() returned false, touch might not work.\n");
 #ifdef _WIN64
@@ -295,7 +295,7 @@ HRESULT chuni_io_jvs_init(void) {
 
 
     log_info("raw_input: %s\n", raw_input ? "enabled" : "disabled");
-    log_info("separat_control: %s\n", separat_control ? "enabled" : "disabled");
+    log_info("separate_control: %s\n", separate_control ? "enabled" : "disabled");
     log_info("ir_keep_slider: %s\n", ir_keep_slider ? "enabled" : "disabled");
     log_info("key: start: %ld, width: %ld, end: %ld\n", chuni_key_start, chuni_key_width, chuni_key_end);
 
@@ -305,7 +305,7 @@ HRESULT chuni_io_jvs_init(void) {
         log_info("ir: leap mode, axis: %u, trigger_threshold: %u, step: %u\n", leap_orientation, chuni_ir_leap_trigger, chuni_ir_leap_step);
     }
 
-    if (separat_control) {
+    if (separate_control) {
         log_info("creating separated control window...\n");
         make_control_window();
         render();
@@ -374,7 +374,7 @@ void chuni_io_slider_stop(void) {
 }
 
 void chuni_io_slider_set_leds(const uint8_t* brg) {
-    if (separat_control) {
+    if (separate_control) {
         for (int i = 31, ii = 0; i >= 0; i--, ii += 3) {
             D2D1_COLOR_F c = { brg[ii+1]/255., brg[ii+2]/255., brg[ii]/255., 1. };
             ID2D1SolidColorBrush_SetColor(brushes[i], &c);
