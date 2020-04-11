@@ -51,6 +51,10 @@ static WNDPROC chuni_wndproc;
 static LONG start_locations[MAXFINGERS];
 static LONG finger_ids[MAXFINGERS];
 
+static D2D1_SIZE_U canvas_sz;
+static ID2D1HwndRenderTarget *target = NULL;
+static ID2D1SolidColorBrush* brushes[32];
+
 static int get_slider_from_pos(LONG x, LONG y) {
     if (x < chuni_key_start || x > chuni_key_end) return -1;
     return 31 - ((x - chuni_key_start) / chuni_key_width);
@@ -132,7 +136,24 @@ LRESULT CALLBACK winproc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param) {
     return septated_control ? DEF_WINPROC : CHUNI_WINPROC;
 }
 
+static void render() {
+    if (!target) return;
+    ID2D1HwndRenderTarget_BeginDraw(target);
+
+    float step = canvas_sz.width/32.;
+
+    for (int i = 0; i < 32; i++) {
+        D2D1_RECT_F r = { step * i, 0, step * (i+1), canvas_sz.height };
+        ID2D1HwndRenderTarget_FillRectangle(target, &r, (ID2D1Brush *) brushes[i]);
+    }
+
+    if (ID2D1HwndRenderTarget_EndDraw(target, NULL, NULL) < 0) { // fixme: read tag
+        log_fatal("render failed.\n");
+    }
+}
+
 static void make_control_window() {
+    if (target) return;
     ID2D1Factory* d2df = NULL;
     D2D1_FACTORY_OPTIONS opt = { D2D1_DEBUG_LEVEL_INFORMATION };
     if (D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &IID_ID2D1Factory, &opt, (void **) &d2df) != S_OK) {
@@ -152,7 +173,39 @@ static void make_control_window() {
 
     if (!hwnd) {
         log_fatal("can't create control window.\n");
-        // return ?
+        return;
+    }
+
+    RECT rc;
+    GetClientRect(hwnd, &rc);
+
+    canvas_sz.height = rc.bottom - rc.top;
+    canvas_sz.width = rc.right - rc.left;
+
+    D2D1_RENDER_TARGET_PROPERTIES rtp;
+    rtp.type = D2D1_RENDER_TARGET_TYPE_DEFAULT;
+    rtp.pixelFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
+    rtp.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    rtp.dpiX = rtp.dpiY = 0;
+    rtp.usage = D2D1_RENDER_TARGET_USAGE_NONE;
+    rtp.minLevel = D2D1_FEATURE_LEVEL_DEFAULT;
+
+    D2D1_HWND_RENDER_TARGET_PROPERTIES hrtp;
+    hrtp.hwnd = hwnd;
+    hrtp.pixelSize = canvas_sz;
+    hrtp.presentOptions = D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS;
+    
+    if (ID2D1Factory_CreateHwndRenderTarget(d2df, &rtp, &hrtp, &target) < 0) {
+        log_fatal("can't create d2d render target.\n");
+        // return
+    }
+
+    for (int i = 0; i < 32; i++) {
+        D2D1_COLOR_F color = { i/32., i/32., i/32., 1. };
+        if (ID2D1HwndRenderTarget_CreateSolidColorBrush(target, &color, NULL, &brushes[i]) < 0) {
+            log_fatal("d2d brush creation failed.\n");
+            // return
+        }
     }
 
     ShowWindow(hwnd, SW_SHOWNORMAL);
@@ -256,6 +309,7 @@ HRESULT chuni_io_jvs_init(void) {
     if (septated_control) {
         log_info("creating septated control window...\n");
         make_control_window();
+        render(); // remove me
     }
 
     return S_OK;
