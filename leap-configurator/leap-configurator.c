@@ -11,7 +11,7 @@ static BOOL use_leap;
 static UINT leap_trigger;
 static UINT leap_step;
 static UINT leap_orientation;
-static BOOL leap_reverted;
+static BOOL leap_inverted;
 
 #define LEAP_X 0
 #define LEAP_Y 1
@@ -33,14 +33,14 @@ void handle_track(const LEAP_TRACKING_EVENT *ev) {
             if (leap_orientation == LEAP_X) pos = _x;
             if (leap_orientation == LEAP_Y) pos = _y;
             if (leap_orientation == LEAP_Z) pos = _z;
-            if ((!leap_reverted && pos > leap_trigger) || (leap_reverted && leap_trigger > pos)) {
-                id = (pos - leap_trigger) / ((leap_reverted ? -1 : 1) * leap_step) - 1;
+            if ((!leap_inverted && pos > leap_trigger) || (leap_inverted && leap_trigger > pos)) {
+                id = (leap_inverted ? -1 : 1) * (pos - leap_trigger) / leap_step - 1;
                 if (id > 5) id = 5;
                 if (id < 0) id = 0;
             }
 
             if (last_id != id) {
-                if (id > 0) log_info("IR %d triggered.\n", id + 1);
+                if (id >= 0) log_info("IR %d triggered.\n", id + 1);
                 else log_info("No IR triggered.\n");
                 last_id = id;
             }
@@ -125,16 +125,13 @@ void configure() {
         leap_trigger = low_z;
     }
     if (leap_orientation == LEAP_X && dx < 0) {
-        leap_reverted = TRUE;
-        leap_trigger = high_x;
+        leap_inverted = TRUE;
     }
     if (leap_orientation == LEAP_Y && dy < 0) {
-        leap_reverted = TRUE;
-        leap_trigger = high_y;
+        leap_inverted = TRUE;
     }
     if (leap_orientation == LEAP_Z && dz < 0) {
-        leap_reverted = TRUE;
-        leap_trigger = high_z;
+        leap_inverted = TRUE;
     }
     leap_step = dmax/6;
     use_leap = TRUE;
@@ -145,7 +142,7 @@ void configure() {
 
     swprintf_s(leap_trigger_str, 16, L"%d", leap_trigger);
     swprintf_s(leap_step_str, 16, L"%d", leap_step);
-    swprintf_s(leap_orientation_str, 16, L"%s%c", leap_reverted ? L"-" : L"", leap_orientation_char);
+    swprintf_s(leap_orientation_str, 16, L"%s%c", leap_inverted ? L"-" : L"", leap_orientation_char);
 
     WritePrivateProfileStringW(L"ir", L"leap_trigger", leap_trigger_str, CONFIG);
     WritePrivateProfileStringW(L"ir", L"leap_step", leap_step_str, CONFIG);
@@ -174,9 +171,9 @@ int main () {
     /**/ if (wcscmp(str_leap_orientation, L"x") == 0) leap_orientation = LEAP_X;
     else if (wcscmp(str_leap_orientation, L"y") == 0) leap_orientation = LEAP_Y;
     else if (wcscmp(str_leap_orientation, L"z") == 0) leap_orientation = LEAP_Z;
-    else if (wcscmp(str_leap_orientation, L"-x") == 0) { leap_orientation = LEAP_X; leap_reverted = TRUE; }
-    else if (wcscmp(str_leap_orientation, L"-y") == 0) { leap_orientation = LEAP_Y; leap_reverted = TRUE; }
-    else if (wcscmp(str_leap_orientation, L"-z") == 0) { leap_orientation = LEAP_Z; leap_reverted = TRUE; }
+    else if (wcscmp(str_leap_orientation, L"-x") == 0) { leap_orientation = LEAP_X; leap_inverted = TRUE; }
+    else if (wcscmp(str_leap_orientation, L"-y") == 0) { leap_orientation = LEAP_Y; leap_inverted = TRUE; }
+    else if (wcscmp(str_leap_orientation, L"-z") == 0) { leap_orientation = LEAP_Z; leap_inverted = TRUE; }
 
     log_info("connecting to leap service...\n");
     leap_set_tracking_handler(handle_track); // debug
@@ -189,7 +186,7 @@ int main () {
 
     while (TRUE) {
         printf("chuni-touch: leap configurator\n");
-        printf("current configured values: enabled: %s, trigger: %d, step: %d, orientation: %s%d.\n", use_leap ? "true" : "false", leap_trigger, leap_step, leap_reverted ? "-" : "", leap_orientation);
+        printf("current configured values: enabled: %s, trigger: %d, step: %d, orientation: %s%d.\n", use_leap ? "true" : "false", leap_trigger, leap_step, leap_inverted ? "-" : "", leap_orientation);
         printf("    c) configure\n");
         printf("    t) test\n");
         printf("\n");
