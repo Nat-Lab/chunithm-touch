@@ -78,6 +78,14 @@ static int get_finger_index(DWORD id) {
 }
 
 LRESULT CALLBACK winproc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param) {
+    if (septated_control) {
+        if (msg == WM_PAINT) {
+            // todo: render
+        } else if (msg == WM_CLOSE) {
+            return S_OK; // ignore
+        }
+    }
+
     if (msg != WM_TOUCH) return septated_control ? DEF_WINPROC : CHUNI_WINPROC;
 
     UINT fingers = LOWORD(w_param);
@@ -137,15 +145,17 @@ static void make_control_window() {
     RegisterClass(&c);
     HWND *hwnd = CreateWindowEx(
         0, name, name, 
-        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
-        CW_USEDEFAULT, CW_USEDEFAULT, 32 * chuni_key_width, 
-        chuni_ir_height * 12 + chuni_ir_trigger_threshold, NULL, NULL, M_HINST, NULL
+        WS_OVERLAPPED | WS_CAPTION,
+        CW_USEDEFAULT, CW_USEDEFAULT, (32 * chuni_key_width)/100, 
+        (chuni_ir_height * 12 + chuni_ir_trigger_threshold)/100, NULL, NULL, M_HINST, NULL
     );
 
     if (!hwnd) {
         log_fatal("can't create control window.\n");
         // return ?
     }
+
+    ShowWindow(hwnd, SW_SHOWNORMAL);
 }
 
 void leap_handler(const LEAP_TRACKING_EVENT *ev) {
