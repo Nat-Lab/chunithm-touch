@@ -378,7 +378,7 @@ void chuni_io_slider_stop(void) {
 void chuni_io_slider_set_leds(const uint8_t* bgr) {
     if (septated_control) {
         for (int i = 0, ii = 0; i < 32; i++, ii += 3) {
-            D2D1_COLOR_F c = { bgr[ii]/32., bgr[ii+1]/32., bgr[ii+2]/32., 1. };
+            D2D1_COLOR_F c = { bgr[ii]/255., bgr[ii+1]/255., bgr[ii+2]/255., 1. };
             ID2D1SolidColorBrush_SetColor(brushes[i], &c);
         }
     }
